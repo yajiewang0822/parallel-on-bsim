@@ -4,7 +4,7 @@
 ---
 
 ## URL
-https://yajiewang0822.github.io/parallel-on-bsim/
+[https://yajiewang0822.github.io/parallel-on-bsim/](https://yajiewang0822.github.io/parallel-on-bsim/)
 ## Summary
 We would like to speed up the Reconstruction simulation by parallelizing the Blind Structured Illumination Microscopy(BSIM) algorithm which involves proximal griadient descent.
 ## Background
@@ -22,14 +22,14 @@ The steps for BSIM reconstruction simulation is:
 
 ## Resources 
 We have the MATLAB version of the entire simulation process. We will build our C++ code based on the MATLAB code.
-### Paper Refernce (Change to citation form later)
+### Paper Refernce 
 #### Information about BSIM 
-1. https://www.osapublishing.org/DirectPDFAccess/93B2A204-E697-E8E4-C2CE227D772C14A8_344732/optica-3-6-667.pdf?da=1&id=344732&seq=0&mobile=no
-2. https://www.osapublishing.org/DirectPDFAccess/93B8A8BD-EE08-D223-AB9B0DE179A910A0_357203/boe-8-2-695.pdf?da=1&id=357203&seq=0&mobile=no
+1. Ströhl, Florian and C. Kaminski. “Frontiers in structured illumination microscopy.” (2016).
+2. Yeh, Li-Hao et al. “Structured illumination microscopy with unknown patterns and a statistical prior.” Biomedical optics express 8 2 (2017): 695-711 .
 
 #### Parallelze Stochastic Gradient Descent
-1. http://martin.zinkevich.org/publications/nips2010.pdf
-2. https://arxiv.org/pdf/0911.0491.pdf
+1. Zinkevich, Martin et al. “Parallelized Stochastic Gradient Descent.” NIPS (2010).
+2. Zinkevich, Martin et al. “Slow Learners are Fast.” NIPS (2009).
 
 ## Goals and Deliverables 
 We plan to parallelize BSIM part of the simulation. If time allows, we may try to parallelize the pattern generation part of the simulation using GPU as it can be a highly data-independent part. 
