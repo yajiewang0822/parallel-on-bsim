@@ -1,5 +1,8 @@
 
 # Parallel BSIM Reconstruction Simulation
+
+---
+
 ## URL
 https://yajiewang0822.github.io/parallel-on-bsim/
 ## Summary
@@ -27,7 +30,8 @@ We have the MATLAB version of the entire simulation process. We will build our C
 #### Parallelze Stochastic Gradient Descent
 1. http://martin.zinkevich.org/publications/nips2010.pdf
 2. https://arxiv.org/pdf/0911.0491.pdf
-# Goals and Deliverables 
+
+## Goals and Deliverables 
 We plan to parallelize BSIM part of the simulation. If time allows, we may try to parallelize the pattern generation part of the simulation using GPU as it can be a highly data-independent part. 
 During the poster session, depending on the result, we may be able to have a live comparison between the sequential and the parallel version of the code by executing them. However, so far, we do not have C++ code yet, and thus we do not know how much time the sequentail version would require. Our best guess for poster session would be that we will simply show the results as a table/graph. 
 
