@@ -39,7 +39,7 @@ void GeneratePSFandOTF(double effect_NA){
   int xc = round(size/2);
   int yc = round(size/2);
   vector<vector<int>> X;
-  vector<int> X_row(size); 
+  vector<int> X_row; 
   for(int i = 0; i < size; i++){
     X_row.push_back(i+1-xc);
   }
@@ -49,7 +49,7 @@ void GeneratePSFandOTF(double effect_NA){
   vector<vector<int>> Y;
   for(int i = 0; i < size; i++){
 
-    vector<int> Y_row(size); 
+    vector<int> Y_row; 
     for(int j = 0; j < size; j++){
       Y_row.push_back(j+1-yc);
     }
@@ -57,7 +57,7 @@ void GeneratePSFandOTF(double effect_NA){
   }
   vector<vector<double>> R;
   for(int i = 0; i < size; i++){
-    vector<int> R_row(size); 
+    vector<int> R_row; 
     for(int j = 0; j < size; j++){
       double temp = sqrt( X[i][j] * X[i][j] + Y[i][j] * Y[i][j]);
       R_row.push_back(temp);
