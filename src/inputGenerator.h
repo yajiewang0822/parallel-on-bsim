@@ -1,4 +1,4 @@
-#include <vector>
+#include<vector>
 using namespace std;
 
 class InputGenerator
@@ -16,9 +16,7 @@ private:
   vector<vector<vector<double>>> GeneratePatterns();
 
 public:
-  InputGenerator(double NA, double lambda, int pattern_num, int img_size){
-
-  }
+  InputGenerator(double NA, double lambda, int pattern_num, int img_size);
   vector<vector<double>> getPSF();
   vector<vector<double>> getPSFn();
   void GenerateInputs();
