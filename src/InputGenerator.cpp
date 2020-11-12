@@ -78,9 +78,17 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA)
     }
     R.push_back(R_row);
   }
-  // Use bessel function this->psf
+//TODO:  Use bessel function this->psf and FFT
+// psf=abs(2*besselj(1,2*pi./lambda*NA*R*psize+eps,1)...
+//     ./(2*pi./lambda*NA*R*psize+eps)).^2;
+// psf0=psf/max(max(psf));
 
-  // Use FFT
+// %Generate OTF
+// OTF2d=fftshift(fft2(psf));
+// OTF2dmax = max(max(abs(OTF2d)));
+// OTF2d = OTF2d./OTF2dmax;
+// OTF2dc = abs(OTF2d);
+
 }
 
 vector<vector<double> > InputGenerator::GenerateObjective()
@@ -133,7 +141,6 @@ vector<vector<double> > InputGenerator::getPSFn()
   return this->psfn;
 }
 
-//TODO
 vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
 {
   int pat_num = this->pattern_num;
@@ -147,7 +154,6 @@ vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
       idx[i] = i;
     }
     random_shuffle(idx.begin(), idx.end());
-    // shuffle(, default_random_engine(seed));
     int offset = (k - 1) * pat_num / 3;
     for (int i = 0; i < pat_num / 3; i++)
     {
@@ -157,9 +163,10 @@ vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
         int index = idx[(i - 1) * NUM_SPECKLE + count];
         int pos_y = index / size;
         int pos_x = index - pos_y * size;
-        pattern[pos_x][pos_y][i] = 1;
+        pattern[offset + i][pos_x][pos_y] = 1;
         count += 1;
       }
+      pattern[offset + i]=fastConvolution(pattern[offset + i],this->psfn);
     }
   }
 
