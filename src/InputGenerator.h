@@ -23,7 +23,5 @@ public:
   vector<vector<vector<double> > > GenerateInputs();
   vector<vector<double> > getPSF();
   vector<vector<double> > getPSFn();
-  double sumImage(vector<vector<double> > input);
-  vector<vector<double> > fastConvolution(vector<vector<double> > obj, vector<vector<double> >filter);
 };
 

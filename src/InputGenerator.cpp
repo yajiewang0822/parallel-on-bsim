@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <random>
 #include <algorithm>
+#include "helper.h"
 using namespace std;
 
 InputGenerator::InputGenerator(double NA_spec, int pattern_num, int img_size, int p_size)
@@ -13,32 +14,13 @@ InputGenerator::InputGenerator(double NA_spec, int pattern_num, int img_size, in
   this->p_size = p_size;
 }
 
-double InputGenerator::sumImage(vector<vector<double> > input)
-{
-  double sum = 0;
-  for (int i = 0; i < img_size; i++)
-  {
-    for (int j = 0; j < img_size;)
-    {
-      sum += input[i][j];
-    }
-  }
-  return sum;
-}
-
-//TODO: with Halide
-vector<vector<double> > InputGenerator::fastConvolution(vector<vector<double> > obj, vector<vector<double> > filter)
-{
-  vector<vector<double> > result;
-  return result;
-}
 
 vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 {
   int pat_num = this->pattern_num;
   int size = this->img_size;
   vector<vector<double> > objective = this->GenerateObjective();
-  double obj_sum = sumImage(objective);
+  double obj_sum = sumImage(objective,size);
   GeneratePSFandOTF(NA);
   GeneratePSFandOTF(NA_spec);
   vector<vector<double> > widefield = fastConvolution(objective, this->psf);
@@ -106,12 +88,12 @@ vector<vector<double> > InputGenerator::GenerateObjective()
   double pixel_resolution = 0.5 * LAMBDA / this->NA_spec / this->p_size;
   int size = this->img_size;
   vector<vector<double> > result(size, vector<double>(size, 0));
-  uint32_t width = round(pixel_resolution + 7);
-  uint32_t gap = 5;
-  uint32_t y0 = 1;
-  uint32_t width_y = floor((size - gap * 3) / 4);
-  uint32_t num_bar = 3;
-  uint32_t x0;
+  int width = round(pixel_resolution + 7);
+  int gap = 5;
+  int y0 = 1;
+  int width_y = floor((size - gap * 3) / 4);
+  int num_bar = 3;
+  int x0;
   while (y0 + width_y <= size)
   {
     x0 = gap;
