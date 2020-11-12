@@ -1,22 +1,13 @@
-TARGET = BSIM
-OBJS += InputGenerator.o
+all: BSIM BSIM.o InputGenerator.o
 
-CC = g++
-#CFLAGS = -Wall -Werror -DDEBUG -g # debug flags
-CFLAGS = -Wall -g  # release flags
-LDFLAGS += $(LIBS)
+BSIM: InputGenerator.o BSIM.o
+	g++ -Wall $^ -o $@
 
-default:	$(TARGET)
-all:		$(TARGET)
+BSIM.o: BSIM.cpp 
+	g++ -Wall -std=c++11 -c $< -o $@
 
-$(TARGET):	$(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-DEPS = $(OBJS:%.o=%.d)
--include $(DEPS)
+InputGenerator.o: InputGenerator.cpp InputGenerator.h
+	g++ -Wall -std=c++11 -c $< -o $@
 
 clean:
-	rm $(TARGET) $(OBJS) $(DEPS) || true
+	rm BSIM *.o

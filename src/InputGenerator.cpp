@@ -1,8 +1,7 @@
 #include "InputGenerator.h"
 #include <cmath>
-#include <cstdint>
+#include <stdint.h>
 #include <random>
-#include <chrono>
 #include <algorithm>
 using namespace std;
 
