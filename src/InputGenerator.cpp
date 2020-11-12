@@ -2,6 +2,8 @@
 #include <cmath>
 #include <cstdint>
 #include <random>
+#include <chrono>
+#include <algorithm>
 using namespace std;
 
 InputGenerator::InputGenerator(double NA_spec, int pattern_num, int img_size, int p_size)
@@ -12,7 +14,7 @@ InputGenerator::InputGenerator(double NA_spec, int pattern_num, int img_size, in
   this->p_size = p_size;
 }
 
-double InputGenerator::sumImage(vector<vector<double>> input)
+double InputGenerator::sumImage(vector<vector<double> > input)
 {
   double sum = 0;
   for (int i = 0; i < img_size; i++)
@@ -26,24 +28,24 @@ double InputGenerator::sumImage(vector<vector<double>> input)
 }
 
 //TODO: with Halide
-vector<vector<double>> InputGenerator::fastConvolution(vector<vector<double>> obj, vector<vector<double>> filter)
+vector<vector<double> > InputGenerator::fastConvolution(vector<vector<double> > obj, vector<vector<double> > filter)
 {
-  vector<vector<double>> result;
+  vector<vector<double> > result;
   return result;
 }
 
-vector<vector<vector<double>>> InputGenerator::GenerateInputs()
+vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 {
   int pat_num = this->pattern_num;
   int size = this->img_size;
-  vector<vector<double>> objective = this->GenerateObjective();
+  vector<vector<double> > objective = this->GenerateObjective();
   double obj_sum = sumImage(objective);
   GeneratePSFandOTF(NA);
   GeneratePSFandOTF(NA_spec);
-  vector<vector<double>> widefield = fastConvolution(objective, this->psf);
-  vector<vector<vector<double>>> patterns = this->GeneratePatterns();
-  vector<vector<double>> pat_mean(pat_num, vector<double>(pat_num, 0));
-  vector<vector<vector<double>>> inputs(pat_num, vector<vector<double>>(size, vector<double>(size, 0)));
+  vector<vector<double> > widefield = fastConvolution(objective, this->psf);
+  vector<vector<vector<double> > > patterns = this->GeneratePatterns();
+  vector<vector<double> > pat_mean(pat_num, vector<double>(pat_num, 0));
+  vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(size, vector<double>(size, 0)));
   for (int i = 0; i < pat_num; i++)
   {
     for (int j = 0; j < size; j++)
@@ -55,6 +57,7 @@ vector<vector<vector<double>>> InputGenerator::GenerateInputs()
     }
     inputs[i] = fastConvolution(inputs[i], this->psf);
   }
+  return inputs;
 }
 
 void InputGenerator::GeneratePSFandOTF(double effect_NA)
@@ -62,7 +65,7 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA)
   int size = this->img_size;
   int xc = round(size / 2);
   int yc = round(size / 2);
-  vector<vector<int>> X;
+  vector<vector<int> > X;
   vector<int> X_row;
   for (int i = 0; i < size; i++)
   {
@@ -72,7 +75,7 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA)
   {
     X.push_back(X_row);
   }
-  vector<vector<int>> Y;
+  vector<vector<int> > Y;
   for (int i = 0; i < size; i++)
   {
 
@@ -83,7 +86,7 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA)
     }
     Y.push_back(Y_row);
   }
-  vector<vector<double>> R;
+  vector<vector<double> > R;
   for (int i = 0; i < size; i++)
   {
     vector<double> R_row;
@@ -99,11 +102,11 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA)
   // Use FFT
 }
 
-vector<vector<double>> InputGenerator::GenerateObjective()
+vector<vector<double> > InputGenerator::GenerateObjective()
 {
   double pixel_resolution = 0.5 * LAMBDA / this->NA_spec / this->p_size;
   int size = this->img_size;
-  vector<vector<double>> result(size, vector<double>(size, 0));
+  vector<vector<double> > result(size, vector<double>(size, 0));
   uint32_t width = round(pixel_resolution + 7);
   uint32_t gap = 5;
   uint32_t y0 = 1;
@@ -136,24 +139,25 @@ vector<vector<double>> InputGenerator::GenerateObjective()
       break;
     }
   }
+  return result;
 }
 
-vector<vector<double>> InputGenerator::getPSF()
+vector<vector<double> > InputGenerator::getPSF()
 {
   return this->psf;
 }
 
-vector<vector<double>> InputGenerator::getPSFn()
+vector<vector<double> > InputGenerator::getPSFn()
 {
   return this->psfn;
 }
 
 //TODO
-vector<vector<vector<double>>> InputGenerator::GeneratePatterns()
+vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
 {
   int pat_num = this->pattern_num;
   int size = this->img_size;
-  vector<vector<vector<double>>> pattern(pat_num, vector<vector<double>>(size, vector<double>(size, 0)));
+  vector<vector<vector<double> > > pattern(pat_num, vector<vector<double> >(size, vector<double>(size, 0)));
   vector<int> idx(size * size);
   for (int k = 0; k < 3; k++)
   {
@@ -161,7 +165,8 @@ vector<vector<vector<double>>> InputGenerator::GeneratePatterns()
     {
       idx[i] = i;
     }
-    shuffle(idx.begin(), idx.end(), default_random_engine(1));
+    random_shuffle(idx.begin(), idx.end());
+    // shuffle(, default_random_engine(seed));
     int offset = (k - 1) * pat_num / 3;
     for (int i = 0; i < pat_num / 3; i++)
     {
