@@ -1,8 +1,10 @@
 #include "InputGenerator.h"
+
 #include "helper.h"
 #include "BSIM.h"
 #include <stdio.h>
 #include <cmath>
+#include <fftw3.h>
 
 #define NA_SPEC 0.9
 #define PATTERN_NUM 384
@@ -102,5 +104,7 @@ int main()
 {
   InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, IMG_SIZE, PIXEL_SIZE);
   inputGenerator->GenerateInputs();
+ 
+ printf("Success!\n");
   return 0;
 }
