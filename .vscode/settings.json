@@ -2,6 +2,7 @@
   "files.associations": {
     "vector": "cpp",
     "cstdint": "cpp",
-    "random": "cpp"
+    "random": "cpp",
+    "complex": "cpp"
   }
 }
