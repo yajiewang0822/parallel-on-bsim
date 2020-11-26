@@ -6,10 +6,7 @@
 #include <cmath>
 
 
-#define NA_SPEC 0.9
-#define PATTERN_NUM 384
-#define IMG_SIZE 256
-#define PIXEL_SIZE 30
+
 
 BSIM::BSIM(int pat_num, int img_size){
   this->pat_num = pat_num;
@@ -53,16 +50,19 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(size, vector<double>(size, 0)));
     double cost_value = 0.0, cost_value_next = 0.0;
     for (int j=0; j < pat_num; j++){
-      residual[j] = matrixSub(inputs[j],fastConvolution(matrixDotMul(patterns[i],obj),psf));
-      cost_value += sumImage(matrixAbs(residual[j]), size);
+      residual[j] = matrixSub(inputs[j],fconv2(matrixDotMul(patterns[i],obj),psf));
+      cost_value += sumImage(matrixAbs(residual[j]));
     }
 
     // calculate gradient
     vector<vector<double> > gradient(size,vector<double>(size, 0));
     vector<vector<double> > sum_pat(size, vector<double>(size, 0));
     for (int j=0; j < pat_num - 1; j++){
-      gradient = matrixScalarMul(matrixDotMul(obj, fastConvolution(residual[j],psf)),-2.0);
+      // g = -2 * obj * fconv2(res * psf)
+      gradient = matrixScalarMul(matrixDotMul(obj, fconv2(residual[j],psf)),-2.0);
+      // pat_next = pat - g * step
       patterns_next[j] = matrixSub(patterns[j], matrixScalarMul(gradient, step));
+      // pat_next = pat ;
       patterns_next[j] = matrixAdd(patterns[j], matrixScalarMul(matrixSub(patterns_next[j], patterns[j]), alpha));
       sum_pat = matrixAdd(sum_pat,patterns_next[j]);
     }
@@ -70,8 +70,8 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
 
     // if the cost value increases, descard the update and decrease the step
     for (int j=0; j < pat_num; j++){
-      residual[j] = matrixSub(inputs[j],fastConvolution(matrixDotMul(patterns[i],obj),psf));
-      cost_value_next += sumImage(matrixAbs(residual[j]), size);
+      residual[j] = matrixSub(inputs[j],fconv2(matrixDotMul(patterns[i],obj),psf));
+      cost_value_next += sumImage(matrixAbs(residual[j]));
     }
     if (cost_value_next>cost_value){
       patterns_next = patterns;
@@ -89,7 +89,8 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
   }
   covar = matrixScalarMul(covar, 1.0/(pat_num-1));
   //step2: deconvolution
-  return deconvolution(covar,matrixDotMul(ifft2(complexValue(fft2(psfn), size)), psf));
+  // return deconvolution(covar,matrixDotMul(ifft2(getValueOfComplex(fft2(psfn), size)), psf));
+  return deconvolution(covar, psf);
 }
 
 vector<vector<double> > BSIM::covariance(vector<vector<double> > input, vector<vector<double> > pattern){
@@ -102,7 +103,7 @@ vector<vector<double> > BSIM::covariance(vector<vector<double> > input, vector<v
 
 int main()
 {
-  InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, IMG_SIZE, PIXEL_SIZE);
+  InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
   inputGenerator->GenerateInputs();
  
   printf("Success!\n");

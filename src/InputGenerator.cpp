@@ -3,14 +3,23 @@
 #include <stdint.h>
 #include <random>
 #include <algorithm>
+#include <boost/math/special_functions/bessel.hpp>
 #include "helper.h"
+
 using namespace std;
 
-InputGenerator::InputGenerator(double NA_spec, int pattern_num, int img_size, int p_size)
+InputGenerator::InputGenerator(double NA_spec, int pattern_num, int p_size)
 {
+  this->OTF = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  this->OTFn = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  for (int i=0;i<IMG_SIZE;i++){
+    vector<double> v1(IMG_SIZE,0);
+    this->psf.push_back(v1);
+    vector<double> v2(IMG_SIZE,0);
+    this->psfn.push_back(v2);
+  }
   this->NA_spec = NA_spec;
   this->pattern_num = pattern_num;
-  this->img_size = img_size;
   this->p_size = p_size;
 }
 
@@ -18,16 +27,20 @@ InputGenerator::InputGenerator(double NA_spec, int pattern_num, int img_size, in
 vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 {
   int pat_num = this->pattern_num;
-  int size = this->img_size;
+  
   vector<vector<double> > objective = this->GenerateObjective();
   // saveImage(objective, size, "objective.jpg");
-  double obj_sum = sumImage(objective,size);
+  double obj_sum = sumImage(objective);
   GeneratePSFandOTF(NA, PSF);
-  // GeneratePSFandOTF(NA_spec);
-  // vector<vector<double> > widefield = fastConvolution(objective, this->psf);
+  this->psf[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
+  GeneratePSFandOTF(NA_spec, PSFN);
+  this->psfn[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
+  vector<vector<double> > widefield = fconv2(objective, this->psf);
+  
+  saveImage(widefield, "widefield.jpg");
   // vector<vector<vector<double> > > patterns = this->GeneratePatterns();
   vector<vector<double> > pat_mean(pat_num, vector<double>(pat_num, 0));
-  vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(size, vector<double>(size, 0)));
+  vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
   // for (int i = 0; i < pat_num; i++)
   // {
   //   for (int j = 0; j < size; j++)
@@ -44,79 +57,68 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 
 void InputGenerator::GeneratePSFandOTF(double effect_NA, PSF_TYPE type)
 {
-  int size = this->img_size;
-  int xc = round(size / 2);
-  int yc = round(size / 2);
-  vector<vector<int> > X;
-  vector<int> X_row;
-  for (int i = 0; i < size; i++)
-  {
-    X_row.push_back(i + 1 - xc);
-  }
-  for (int i = 0; i < size; i++)
-  {
-    X.push_back(X_row);
-  }
-  vector<vector<int> > Y;
-  for (int i = 0; i < size; i++)
-  {
-
-    vector<int> Y_row;
-    for (int j = 0; j < size; j++)
-    {
-      Y_row.push_back(j + 1 - yc);
-    }
-    Y.push_back(Y_row);
-  }
+  //Use bessel function this->psf and FFT
+  // psf=abs(2*besselj(1,2*pi./lambda*NA*R*psize+eps,1)...
+  //     ./(2*pi./lambda*NA*R*psize+eps)).^2;
+  // psf0=psf/max(max(psf));
+  int xc = round(IMG_SIZE / 2);
+  int yc = round(IMG_SIZE / 2);
   double scale=2*PI/LAMBDA*NA*p_size;
   
-  for (int i = 0; i < size; i++)
+  for (int i = 0; i < IMG_SIZE; i++)
   {
-    for (int j = 0; j < size; j++)
+    double x=i + 1 - xc;
+    for (int j = 0; j < IMG_SIZE; j++)
     {
-      double temp = sqrt(X[i][j] * X[i][j] + Y[i][j] * Y[i][j]);
+      double y=j + 1 - yc;
+      double temp = sqrt(x * x + y * y);
       switch (type)
       {
       case PSF:
-        this->psf[i][j]=cyl_bessel_i(1.0, scale*temp);
+        this->psf[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp)/((scale*temp)*(scale*temp));
         break;
       case PSFN:
+        this->psfn[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp)/((scale*temp)*(scale*temp));
         break;
       default:
         break;
       }
     }
   }
-//TODO:  Use bessel function this->psf and FFT
-// psf=abs(2*besselj(1,2*pi./lambda*NA*R*psize+eps,1)...
-//     ./(2*pi./lambda*NA*R*psize+eps)).^2;
-// psf0=psf/max(max(psf));
-
-// %Generate OTF
-// OTF2d=fftshift(fft2(psf));
-// OTF2dmax = max(max(abs(OTF2d)));
-// OTF2d = OTF2d./OTF2dmax;
-// OTF2dc = abs(OTF2d);
-
+  // %Generate OTF
+  // OTF2d=fftshift(fft2(psf));
+  // OTF2dmax = max(max(abs(OTF2d)));
+  // OTF2d = OTF2d./OTF2dmax;
+  // OTF2dc = abs(OTF2d);
+  switch (type)
+      {
+      case PSF:
+        fft2(this->psf, this->OTF);
+        break;
+      case PSFN:
+        fft2(this->psfn, this->OTFn);
+        break;
+      default:
+        break;
+      }
 }
 
 vector<vector<double> > InputGenerator::GenerateObjective()
 {
   double pixel_resolution = 0.5 * LAMBDA / this->NA_spec / this->p_size;
-  int size = this->img_size;
-  vector<vector<double> > result(size, vector<double>(size, 0));
+  vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE, 0));
   int width = round(pixel_resolution + 7);
   
   int gap = 5;
   int y0 = 1;
-  int width_y = floor((size - gap * 3) / 4);
+  int width_y = floor((IMG_SIZE - gap * 3) / 4);
   int num_bar = 3;
   int x0;
-  while (y0 + width_y <= size)
+  while (y0 + width_y <= IMG_SIZE)
   {
     x0 = gap;
     num_bar++;
-    while ((x0 + num_bar * width) < size)
+    while ((x0 + num_bar * width) < IMG_SIZE)
     {
       for (int i = 0; i < num_bar * width; i++)
       {
@@ -158,12 +160,11 @@ vector<vector<double> > InputGenerator::getPSFn()
 vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
 {
   int pat_num = this->pattern_num;
-  int size = this->img_size;
-  vector<vector<vector<double> > > pattern(pat_num, vector<vector<double> >(size, vector<double>(size, 0)));
-  vector<int> idx(size * size);
+  vector<vector<vector<double> > > pattern(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  vector<int> idx(IMG_SIZE * IMG_SIZE);
   for (int k = 0; k < 3; k++)
   {
-    for (int i = 0; i < size * size; i++)
+    for (int i = 0; i < IMG_SIZE * IMG_SIZE; i++)
     {
       idx[i] = i;
     }
@@ -175,12 +176,12 @@ vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
       while (count < NUM_SPECKLE)
       {
         int index = idx[(i - 1) * NUM_SPECKLE + count];
-        int pos_y = index / size;
-        int pos_x = index - pos_y * size;
+        int pos_y = index / IMG_SIZE;
+        int pos_x = index - pos_y * IMG_SIZE;
         pattern[offset + i][pos_x][pos_y] = 1;
         count += 1;
       }
-      pattern[offset + i]=fastConvolution(pattern[offset + i],this->psfn);
+      pattern[offset + i]=fconv2(pattern[offset + i],this->psfn);
     }
   }
 
