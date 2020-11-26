@@ -1,5 +1,9 @@
 #include <vector>
 #include <complex>
+#include <fftw3.h>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <string>
 using namespace std;
 
 vector<vector<double> > fastConvolution(vector<vector<double> > obj, vector<vector<double> > filter);
@@ -15,3 +19,4 @@ vector<vector<double> > matrixAbs(vector<vector<double> > matrix);
 vector<vector<double> > matrixScalarMul(vector<vector<double> > matrix, double multiplier);
 vector<vector<double> > matrixColMean(vector<vector<double> > matrix);
 double sumImage(vector<vector<double> > input, int img_size);
+void saveImage(vector<vector<double> > input, int img_size, string filename);

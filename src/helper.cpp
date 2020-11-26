@@ -136,3 +136,16 @@ double sumImage(vector<vector<double> > input, int img_size)
   }
   return sum;
 }
+
+void saveImage(vector<vector<double> > input, int img_size, string filename){
+  double img[img_size][img_size];
+  for (int i = 0;i < img_size; i++){
+    for (int j = 0;j < img_size; j++){
+      img[i][j] = input[i][j]*100;
+    }
+  }
+  cv::Mat img_mat(img_size,img_size,CV_64F);
+  memcpy(img_mat.data, img, img_size*img_size*sizeof(double));
+  printf("show img!\n");
+  cv::imwrite(filename,img_mat);
+}

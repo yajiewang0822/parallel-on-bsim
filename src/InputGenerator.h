@@ -5,6 +5,11 @@ using namespace std;
 #define NUM_SPECKLE 512
 #define NA 0.9
 #define LAMBDA 520
+
+enum PSF_TYPE{
+  PSF, PSFN
+};
+
 class InputGenerator
 {
 private:
@@ -14,7 +19,7 @@ private:
   int pattern_num; 
   int img_size;
   int p_size;
-  void GeneratePSFandOTF(double effect_NA);
+  void GeneratePSFandOTF(double effect_NA, PSF_TYPE type);
   vector<vector<double> > GenerateObjective();
   vector<vector<vector<double> > > GeneratePatterns();
 

@@ -4,11 +4,11 @@
 #include "BSIM.h"
 #include <stdio.h>
 #include <cmath>
-#include <fftw3.h>
+
 
 #define NA_SPEC 0.9
 #define PATTERN_NUM 384
-#define IMG_SIZE 512
+#define IMG_SIZE 256
 #define PIXEL_SIZE 30
 
 BSIM::BSIM(int pat_num, int img_size){
@@ -105,6 +105,6 @@ int main()
   InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, IMG_SIZE, PIXEL_SIZE);
   inputGenerator->GenerateInputs();
  
- printf("Success!\n");
+  printf("Success!\n");
   return 0;
 }

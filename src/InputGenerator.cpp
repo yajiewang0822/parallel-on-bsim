@@ -20,28 +20,29 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
   int pat_num = this->pattern_num;
   int size = this->img_size;
   vector<vector<double> > objective = this->GenerateObjective();
+  // saveImage(objective, size, "objective.jpg");
   double obj_sum = sumImage(objective,size);
-  GeneratePSFandOTF(NA);
-  GeneratePSFandOTF(NA_spec);
-  vector<vector<double> > widefield = fastConvolution(objective, this->psf);
-  vector<vector<vector<double> > > patterns = this->GeneratePatterns();
+  GeneratePSFandOTF(NA, PSF);
+  // GeneratePSFandOTF(NA_spec);
+  // vector<vector<double> > widefield = fastConvolution(objective, this->psf);
+  // vector<vector<vector<double> > > patterns = this->GeneratePatterns();
   vector<vector<double> > pat_mean(pat_num, vector<double>(pat_num, 0));
   vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(size, vector<double>(size, 0)));
-  for (int i = 0; i < pat_num; i++)
-  {
-    for (int j = 0; j < size; j++)
-    {
-      for (int k = 0; k < size; k++)
-      {
-        inputs[i][j][k] = objective[j][k] * patterns[i][j][k];
-      }
-    }
-    inputs[i] = fastConvolution(inputs[i], this->psf);
-  }
+  // for (int i = 0; i < pat_num; i++)
+  // {
+  //   for (int j = 0; j < size; j++)
+  //   {
+  //     for (int k = 0; k < size; k++)
+  //     {
+  //       inputs[i][j][k] = objective[j][k] * patterns[i][j][k];
+  //     }
+  //   }
+  //   inputs[i] = fastConvolution(inputs[i], this->psf);
+  // }
   return inputs;
 }
 
-void InputGenerator::GeneratePSFandOTF(double effect_NA)
+void InputGenerator::GeneratePSFandOTF(double effect_NA, PSF_TYPE type)
 {
   int size = this->img_size;
   int xc = round(size / 2);
@@ -67,16 +68,24 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA)
     }
     Y.push_back(Y_row);
   }
-  vector<vector<double> > R;
+  double scale=2*PI/LAMBDA*NA*p_size;
+  
   for (int i = 0; i < size; i++)
   {
-    vector<double> R_row;
     for (int j = 0; j < size; j++)
     {
       double temp = sqrt(X[i][j] * X[i][j] + Y[i][j] * Y[i][j]);
-      R_row.push_back(temp);
+      switch (type)
+      {
+      case PSF:
+        this->psf[i][j]=cyl_bessel_i(1.0, scale*temp);
+        break;
+      case PSFN:
+        break;
+      default:
+        break;
+      }
     }
-    R.push_back(R_row);
   }
 //TODO:  Use bessel function this->psf and FFT
 // psf=abs(2*besselj(1,2*pi./lambda*NA*R*psize+eps,1)...
@@ -97,6 +106,7 @@ vector<vector<double> > InputGenerator::GenerateObjective()
   int size = this->img_size;
   vector<vector<double> > result(size, vector<double>(size, 0));
   int width = round(pixel_resolution + 7);
+  
   int gap = 5;
   int y0 = 1;
   int width_y = floor((size - gap * 3) / 4);
@@ -115,6 +125,7 @@ vector<vector<double> > InputGenerator::GenerateObjective()
           result[j + y0][i + x0] = sin(2 * PI / width * i) + 1;
         }
       }
+      
       x0 += num_bar * width + gap;
       width--;
       if (width <= 0)
@@ -128,6 +139,9 @@ vector<vector<double> > InputGenerator::GenerateObjective()
       break;
     }
   }
+  // for (int i=0;i<size;i++){
+  //   printf("%f ",result[10][i]);
+  // }
   return result;
 }
 
