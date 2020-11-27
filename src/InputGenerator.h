@@ -1,6 +1,7 @@
 #include <vector>
 #include <complex>
 #include <fftw3.h>
+#include <limits>
 
 using namespace std;
 
@@ -8,6 +9,7 @@ using namespace std;
 #define NUM_SPECKLE 512
 #define NA 0.9
 #define LAMBDA 520
+const double eps=numeric_limits<double>::epsilon();
 
 enum PSF_TYPE{
   PSF, PSFN

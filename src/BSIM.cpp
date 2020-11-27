@@ -30,7 +30,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       obj[i][j] = sqrt(temp/pat_num);
     }
   }
-  obj = deconvolution(obj,psf);
+  obj = deconvlucy(obj,psf);
   double avg = sum/size/size;
   vector<vector<double> > I0(size, vector<double>(size, avg));
   vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(size, vector<double>(size, avg/pat_num)));
@@ -50,7 +50,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(size, vector<double>(size, 0)));
     double cost_value = 0.0, cost_value_next = 0.0;
     for (int j=0; j < pat_num; j++){
-      residual[j] = matrixSub(inputs[j],fconv2(matrixDotMul(patterns[i],obj),psf));
+      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[i],obj),psf));
       cost_value += sumImage(matrixAbs(residual[j]));
     }
 
@@ -59,7 +59,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     vector<vector<double> > sum_pat(size, vector<double>(size, 0));
     for (int j=0; j < pat_num - 1; j++){
       // g = -2 * obj * fconv2(res * psf)
-      gradient = matrixScalarMul(matrixDotMul(obj, fconv2(residual[j],psf)),-2.0);
+      gradient = matrixScalarMul(matrixEleMul(obj, fconv2(residual[j],psf)),-2.0);
       // pat_next = pat - g * step
       patterns_next[j] = matrixSub(patterns[j], matrixScalarMul(gradient, step));
       // pat_next = pat ;
@@ -70,7 +70,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
 
     // if the cost value increases, descard the update and decrease the step
     for (int j=0; j < pat_num; j++){
-      residual[j] = matrixSub(inputs[j],fconv2(matrixDotMul(patterns[i],obj),psf));
+      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[i],obj),psf));
       cost_value_next += sumImage(matrixAbs(residual[j]));
     }
     if (cost_value_next>cost_value){
@@ -88,9 +88,9 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     covar = matrixAdd(covar, covariance(patterns[i],inputs[i])); 
   }
   covar = matrixScalarMul(covar, 1.0/(pat_num-1));
-  //step2: deconvolution
-  // return deconvolution(covar,matrixDotMul(ifft2(getValueOfComplex(fft2(psfn), size)), psf));
-  return deconvolution(covar, psf);
+  //step2: deconvlucy
+  // return deconvlucy(covar,matrixDotMul(ifft2(getValueOfComplex(fft2(psfn), size)), psf));
+  return deconvlucy(covar, psf);
 }
 
 vector<vector<double> > BSIM::covariance(vector<vector<double> > input, vector<vector<double> > pattern){

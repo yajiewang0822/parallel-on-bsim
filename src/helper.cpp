@@ -5,25 +5,47 @@ using namespace std;
 //TODO: with Halide/FFTW
 vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double> > filter)
 {
+  vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
   fftw_complex *obj_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
-  fftw_complex *filter_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  fftw_complex *filter_fft= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  
   fft2(obj, obj_fft);
   fft2(filter, filter_fft);
+
+
   fftw_complex *result_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
   for(int i = 0; i < IMG_SIZE * IMG_SIZE; i++){
     result_fft[i][0] = obj_fft[i][0] * filter_fft[i][0] - obj_fft[i][1] * filter_fft[i][1];
     result_fft[i][1] = obj_fft[i][0] * filter_fft[i][1] + obj_fft[i][1] * filter_fft[i][0];
   }
-  double sum = sumImage(filter);
-  vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
+
   result = ifft2(result_fft);
-  printf("%f\n", sum);
+
+  double *result_in = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
+  double *result_out = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
+  for (int i=0;i<IMG_SIZE;i++){
+    for (int j=0;j<IMG_SIZE;j++){
+      result_in[(i*IMG_SIZE)+j] = result[i][j];
+    }
+  }
+  fftshift_double(result_out,result_in, IMG_SIZE, IMG_SIZE);
+  for (int i=0;i<IMG_SIZE;i++){
+    for (int j=0;j<IMG_SIZE;j++){
+      result[i][j] = result_out[(i*IMG_SIZE)+j];
+    }
+  }
+  double sum = sumImage(filter);
   result = matrixScalarMul(result, (1.0/sum));
+  double sum1 = sumImage(result);
+  printf("%f\n", sum1);
+  fftw_free(obj_fft);
+  fftw_free(filter_fft);
+  fftw_free(result_fft);
   return result;
 }
 
 //TODO: with Halide/FFTW, different from inversion
-vector<vector<double> > deconvolution(vector<vector<double> > obj, vector<vector<double> > filter)
+vector<vector<double> > deconvlucy(vector<vector<double> > obj, vector<vector<double> > filter)
 {
   vector<vector<double> > result;
   return result;
@@ -68,7 +90,7 @@ vector<vector<complex<double> > > getValueOfComplex(vector<vector<complex<double
 }
 
 //TODO: with Halide
-vector<vector<double> > matrixDotMul(vector<vector<double> > matrix1, vector<vector<double> > matrix2)
+vector<vector<double> > matrixEleMul(vector<vector<double> > matrix1, vector<vector<double> > matrix2)
 {
   int size = matrix1.size();
   vector<vector<double> > result(size, vector<double>(size,0));
@@ -152,7 +174,18 @@ vector<vector<double> > matrixColMean(vector<vector<double> > matrix){
 vector<vector<double> > matrixMul(vector<vector<double> > matrix1, vector<vector<double> > matrix2){
   int size = matrix1.size();  
   vector<vector<double> > result(size, vector<double>(size,0));
-  //TODO multiply
+  
+  Eigen::Matrix2d mat1(IMG_SIZE,IMG_SIZE);
+  Eigen::Matrix2d mat2(IMG_SIZE,IMG_SIZE);
+  for (int i=0;i<IMG_SIZE;i++){
+    mat1.row(i)=Eigen::VectorXd::Map(&matrix1[i][0],IMG_SIZE);
+    mat2.row(i)=Eigen::VectorXd::Map(&matrix2[i][0],IMG_SIZE);
+  }
+  Eigen::MatrixXd mat3=mat1*mat2;
+  for (int i=0;i<IMG_SIZE;i++){
+    double* begin = &mat3.row(i).data()[0];
+    result.push_back(vector<double>(begin, begin + mat3.cols()));
+  }
   return result; 
 }
 
@@ -173,11 +206,34 @@ void saveImage(vector<vector<double> > input, string filename){
   double img[IMG_SIZE][IMG_SIZE];
   for (int i = 0;i < IMG_SIZE; i++){
     for (int j = 0;j < IMG_SIZE; j++){
-      img[i][j] = input[i][j]*100;
+      img[i][j] = input[i][j];
     }
   }
   cv::Mat img_mat(IMG_SIZE,IMG_SIZE,CV_64F);
-  memcpy(img_mat.data, img, IMG_SIZE*IMG_SIZE*sizeof(double));
+  cv::Mat img_mat_tmp(IMG_SIZE,IMG_SIZE,CV_64F);
+  memcpy(img_mat_tmp.data, img, IMG_SIZE*IMG_SIZE*sizeof(double));
+  cv::normalize(img_mat_tmp,img_mat, 255.0, 0.0, cv::NORM_MINMAX,-1, cv::noArray());
   printf("show img!\n");
   cv::imwrite(filename,img_mat);
+}
+
+void circshift(fftw_complex *out, fftw_complex *in, int xdim, int ydim, int xshift, int yshift){
+  for (int i = 0; i < xdim; i++) {
+    int ii = (i + xshift) % xdim;
+    for (int j = 0; j < ydim; j++) {
+      int jj = (j + yshift) % ydim;
+      out[ii * ydim + jj][0] = in[i * ydim + j][0];
+      out[ii * ydim + jj][1] = in[i * ydim + j][1];
+    }
+  }
+}
+
+void circshift_double(double *out, double *in, int xdim, int ydim, int xshift, int yshift){
+  for (int i = 0; i < xdim; i++) {
+    int ii = (i + xshift) % xdim;
+    for (int j = 0; j < ydim; j++) {
+      int jj = (j + yshift) % ydim;
+      out[ii * ydim + jj] = in[i * ydim + j];
+    }
+  }
 }

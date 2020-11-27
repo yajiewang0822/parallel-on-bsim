@@ -29,9 +29,10 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
   int pat_num = this->pattern_num;
   
   vector<vector<double> > objective = this->GenerateObjective();
-  // saveImage(objective, size, "objective.jpg");
+  saveImage(objective, "objective.jpg");
   double obj_sum = sumImage(objective);
   GeneratePSFandOTF(NA, PSF);
+  saveImage(this->psf, "psf.jpg");
   this->psf[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
   GeneratePSFandOTF(NA_spec, PSFN);
   this->psfn[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
@@ -64,7 +65,6 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA, PSF_TYPE type)
   int xc = round(IMG_SIZE / 2);
   int yc = round(IMG_SIZE / 2);
   double scale=2*PI/LAMBDA*NA*p_size;
-  
   for (int i = 0; i < IMG_SIZE; i++)
   {
     double x=i + 1 - xc;
@@ -75,16 +75,18 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA, PSF_TYPE type)
       switch (type)
       {
       case PSF:
-        this->psf[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp)/((scale*temp)*(scale*temp));
+        this->psf[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps)*(scale*temp+eps));
         break;
       case PSFN:
-        this->psfn[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp)/((scale*temp)*(scale*temp));
+        this->psfn[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps)*(scale*temp+eps));
         break;
       default:
         break;
       }
     }
   }
+
+
   // %Generate OTF
   // OTF2d=fftshift(fft2(psf));
   // OTF2dmax = max(max(abs(OTF2d)));
