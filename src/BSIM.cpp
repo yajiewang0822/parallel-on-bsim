@@ -4,6 +4,8 @@
 #include "BSIM.h"
 #include <stdio.h>
 #include <cmath>
+#include <ctime>
+#include <iostream>
 
 
 
@@ -103,9 +105,21 @@ vector<vector<double> > BSIM::covariance(vector<vector<double> > input, vector<v
 
 int main()
 {
+  time_t now = time(0);
+   
+  // convert now to string form
+  char* dt = ctime(&now);
+
+  cout << "The local date and time is: " << dt << endl;
   InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
   inputGenerator->GenerateInputs();
- 
+  
+  time_t fin = time(0);
+   
+  // convert now to string form
+  char* dt_fin = ctime(&fin);
+
+  cout << "The local date and time is: " << dt_fin << endl;
   printf("Success!\n");
   return 0;
 }

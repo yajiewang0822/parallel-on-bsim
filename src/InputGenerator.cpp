@@ -75,10 +75,10 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA, PSF_TYPE type)
       switch (type)
       {
       case PSF:
-        this->psf[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps)*(scale*temp+eps));
+        this->psf[i][j]=pow((2*boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps))),2);
         break;
       case PSFN:
-        this->psfn[i][j]=boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps)*(scale*temp+eps));
+        this->psfn[i][j]=pow((2*boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps))),2);
         break;
       default:
         break;
