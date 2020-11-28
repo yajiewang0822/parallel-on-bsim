@@ -1,8 +1,4 @@
 #include "InputGenerator.h"
-#include <cmath>
-#include <stdint.h>
-#include <random>
-#include <algorithm>
 #include <boost/math/special_functions/bessel.hpp>
 #include "helper.h"
 
@@ -27,7 +23,6 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
   
   // generate objective
   vector<vector<double> > objective = this->GenerateObjective();
-  double obj_sum = sumImage(objective);
 
   // generate psf and psfn
   GeneratePSF(NA, PSF);
@@ -69,8 +64,6 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 void InputGenerator::GeneratePSF(double effect_NA, PSF_TYPE type)
 {
   //Use bessel function to calculate psf
-  // psf=abs(2*besselj(1,2*pi./lambda*NA*R*psize+eps,1)...
-  //     ./(2*pi./lambda*NA*R*psize+eps)).^2;
   int xc = round(IMG_SIZE / 2);
   int yc = round(IMG_SIZE / 2);
   double scale=2*PI/LAMBDA*NA*p_size;

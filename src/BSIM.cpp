@@ -3,18 +3,17 @@
 #include "helper.h"
 #include "BSIM.h"
 #include <stdio.h>
-#include <cmath>
 #include <ctime>
-
-
-
 
 BSIM::BSIM(int pat_num){
   this->pat_num = pat_num;
 }
 
+// Reconstruct the high-resolution result based on inputs and psf of both microscopy and illumination
+// Using fast proximal gradient descending algorithm to get the final result
 vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
-  //initial guess
+  
+  //initial guess on objective
   int pat_num = this->pat_num;
   vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
   double sum = 0;
@@ -29,19 +28,25 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     }
   }
   saveImage(inputs[0], "data/outputs/input.jpg");
+
+  //initial guess on the illumination patterns
   double avg = sum/IMG_SIZE/IMG_SIZE;
   double t_prev = 1.0;
   double step = 1.0;
   vector<vector<double> > I_total(IMG_SIZE, vector<double>(IMG_SIZE, sum));
   vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, avg/pat_num)));
   vector<vector<vector<double> > > patterns_next(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  
+  
   //fast proximal gradient descent
   int i=0;
   do{
+
     //update co-effective
     double t_curr=0.5*(1+sqrt(1+4*(t_prev*t_prev)));
     double alpha = t_prev/t_curr;
     t_prev = t_curr;
+
 
     // claculate residual and the cost
     vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
@@ -52,6 +57,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       // f = sum(abs(res),3);
       cost_value += sumImage(matrixAbs(residual[j]));
     }
+
 
     // calculate gradient
     vector<vector<double> > gradient(IMG_SIZE,vector<double>(IMG_SIZE, 0));
@@ -66,10 +72,9 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       // sum_pat = sum(pat_next, 3);
       sum_pat = matrixAdd(sum_pat,patterns_next[j]);
     }
-    
-    
     // pat_next[last]= I_total - sum_pat;
     patterns_next[pat_num - 1] = matrixSub(I_total,sum_pat);
+
 
     // recalculate the residual and cost
     for (int j=0; j < pat_num; j++){
@@ -79,6 +84,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       cost_value_next += sumImage(matrixAbs(residual[j]));
     }
     saveImage(patterns_next[0], "data/outputs/pat_next.jpg");
+
 
     // if the cost value increases, descard the update and decrease the step
     if (cost_value_next>cost_value){
@@ -92,10 +98,10 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
   } while (i < ITER_NUM);
   saveImage(patterns_next[0], "data/outputs/pat.jpg");
 
+
   //covariance of inputs&patterns
   vector<vector<double> > covar(IMG_SIZE, vector<double>(IMG_SIZE, 0));
-  
-  
+
   printf("begin covariance\n");
   vector<double> input(pat_num, 0);
   vector<double> pattern(pat_num, 0);

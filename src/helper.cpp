@@ -1,8 +1,9 @@
 #include "helper.h"
-#include "cmath"
+
 
 using namespace std;
 //TODO: with Halide/FFTW
+// 2D FFT Convolution of two real number matrix
 vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double> > filter)
 {
   vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
@@ -13,13 +14,14 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
   fft2(filter, filter_fft);
 
   fftw_complex *result_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * (IMG_SIZE / 2 +1));
+  // Matrix multiplication of two complex matrix.
+  // Compute the real and complex part of the result separately. 
   for(int i = 0; i < IMG_SIZE * (IMG_SIZE/2+1); i++){
     result_fft[i][0] = obj_fft[i][0] * filter_fft[i][0] - obj_fft[i][1] * filter_fft[i][1];
     result_fft[i][1] = obj_fft[i][0] * filter_fft[i][1] + obj_fft[i][1] * filter_fft[i][0];
   }
-
+  // Obtain the real part of the result
   result = ifft2(result_fft);
-
   double *result_in = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
   double *result_out = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
@@ -27,6 +29,7 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
       result_in[(i*IMG_SIZE)+j] = result[i][j];
     }
   }
+  // FFT shift to shift zero-frequency component to center
   fftshift_double(result_out,result_in, IMG_SIZE, IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
     for (int j=0;j<IMG_SIZE;j++){
@@ -38,6 +41,8 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
   fftw_free(obj_fft);
   fftw_free(filter_fft);
   fftw_free(result_fft);
+  free(result_in);
+  free(result_out);
   return result;
 }
 
