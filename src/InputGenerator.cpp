@@ -31,34 +31,38 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 
   // generate psf and psfn
   GeneratePSF(NA, PSF);
-  saveImage(this->psf, "imgs/psf.jpg");
+  // saveImage(this->psf, "imgs/psf.jpg");
+  saveData(this->psf, "data/psf.txt");
   this->psf[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
   GeneratePSF(NA_spec, PSFN);
-  saveImage(this->psfn, "imgs/psfn.jpg");
+  // saveImage(this->psfn, "imgs/psfn.jpg");
+  saveData(this->psfn, "data/psfn.txt");
   this->psfn[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
 
   // generate widefield
   vector<vector<double> > widefield = fconv2(objective, this->psf);
-  saveImage(widefield, "imgs/widefield.jpg");
+  // saveImage(widefield, "imgs/widefield.jpg");
+  saveData(widefield, "data/widefield.txt");
 
   //genearte patterns
   int pat_num = this->pattern_num;
-  vector<vector<vector<double> > > patterns = this->GeneratePatterns();
+  // vector<vector<vector<double> > > patterns = this->GeneratePatterns();
 
   vector<vector<double> > pat_mean(pat_num, vector<double>(pat_num, 0));
   vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-  for (int i = 0; i < pat_num; i++)
-  {
-    for (int j = 0; j < IMG_SIZE; j++)
-    {
-      for (int k = 0; k < IMG_SIZE; k++)
-      {
-        inputs[i][j][k] = objective[j][k] * patterns[i][j][k];
-      }
-    }
-    inputs[i] = fconv2(inputs[i], this->psf);
-    saveImage(inputs[i], "imgs/inputs/input_" + to_string(i)+".jpg");
-  }
+  // for (int i = 0; i < 1; i++)
+  // {
+  //   for (int j = 0; j < IMG_SIZE; j++)
+  //   {
+  //     for (int k = 0; k < IMG_SIZE; k++)
+  //     {
+  //       inputs[i][j][k] = objective[j][k] * patterns[i][j][k];
+  //     }
+  //   }
+  //   inputs[i] = fconv2(inputs[i], this->psf);
+  //   // saveImage(inputs[i], "imgs/inputs/input_" + to_string(i)+".jpg");
+  //   saveData(inputs[i], "data/input_" + to_string(i)+".txt");
+  // }
   return inputs;
 }
 
@@ -130,7 +134,8 @@ vector<vector<double> > InputGenerator::GenerateObjective()
       break;
     }
   }
-  saveImage(result, "imgs/objective.jpg");
+  // saveImage(result, "imgs/objective.jpg");
+  saveData(result, "data/obj.txt");
   return result;
 }
 

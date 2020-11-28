@@ -11,7 +11,8 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
   
   fft2(obj, obj_fft);
   fft2(filter, filter_fft);
-
+  cout<<"obj: "<<obj_fft[1][0]<<endl;
+  cout<<"filter: "<<filter_fft[1][0]<<endl;
 
   fftw_complex *result_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
   for(int i = 0; i < IMG_SIZE * IMG_SIZE; i++){
@@ -157,8 +158,8 @@ vector<vector<double> > matrixMul(vector<vector<double> > matrix1, vector<vector
   int size = matrix1.size();  
   vector<vector<double> > result(size, vector<double>(size,0));
   
-  Eigen::Matrix2d mat1(IMG_SIZE,IMG_SIZE);
-  Eigen::Matrix2d mat2(IMG_SIZE,IMG_SIZE);
+  Eigen::MatrixXd mat1(IMG_SIZE,IMG_SIZE);
+  Eigen::MatrixXd mat2(IMG_SIZE,IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
     mat1.row(i)=Eigen::VectorXd::Map(&matrix1[i][0],IMG_SIZE);
     mat2.row(i)=Eigen::VectorXd::Map(&matrix2[i][0],IMG_SIZE);
@@ -198,18 +199,27 @@ void saveImage(vector<vector<double> > input, string filename){
   cv::imwrite(filename,img_mat);
 }
 
-vector<vector<double> > readImage(string filename){
-  cv::Mat img_mat = cv::imread(filename, cv::IMREAD_GRAYSCALE);
-  cv::Mat img_double;
-  img_mat.convertTo(img_double, CV_64F);
-  double img[IMG_SIZE][IMG_SIZE];
-  vector<vector<double> > output(IMG_SIZE, vector<double>(IMG_SIZE,0));
-  memcpy(img, img_double.data, IMG_SIZE*IMG_SIZE*sizeof(double));
+void saveData(vector<vector<double> > input, string filename){
+  ofstream myfile;
+  myfile.open (filename);
   for (int i = 0;i < IMG_SIZE; i++){
     for (int j = 0;j < IMG_SIZE; j++){
-      output[i][j] = img[i][j];
+      myfile << input[i][j] << " ";
     }
   }
+  myfile.close();
+}
+
+vector<vector<double> > readData(string filename){
+  vector<vector<double> > output(IMG_SIZE, vector<double>(IMG_SIZE,0));
+  ifstream myfile;
+  myfile.open (filename);
+  for (int i = 0;i < IMG_SIZE; i++){
+    for (int j = 0;j < IMG_SIZE; j++){
+      myfile >> output[i][j];
+    }
+  }
+  myfile.close();
   return output;
 }
 

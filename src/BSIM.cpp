@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <cmath>
 #include <ctime>
-#include <iostream>
 
 
 
@@ -29,7 +28,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       obj[i][j] = sqrt(temp/pat_num);
     }
   }
-  saveImage(inputs[0], "imgs/outputs/input.jpg");
+  saveImage(inputs[0], "data/outputs/input.jpg");
   double avg = sum/IMG_SIZE/IMG_SIZE;
   double t_prev = 1.0;
   double step = 1.0;
@@ -37,7 +36,8 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
   vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, avg/pat_num)));
   vector<vector<vector<double> > > patterns_next(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
   //fast proximal gradient descent
-  for (int i=0; i < ITER_NUM; i++){
+  int i=0;
+  do{
     //update co-effective
     double t_curr=0.5*(1+sqrt(1+4*(t_prev*t_prev)));
     double alpha = t_prev/t_curr;
@@ -48,8 +48,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     double cost_value = 0.0, cost_value_next = 0.0;
     for (int j=0; j < pat_num; j++){
       // res = input - fconv(pat*obj, psf);
-      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[i],obj),psf));
-      
+      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[i],obj),psf));      
       // f = sum(abs(res),3);
       cost_value += sumImage(matrixAbs(residual[j]));
     }
@@ -68,6 +67,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       sum_pat = matrixAdd(sum_pat,patterns_next[j]);
     }
     
+    
     // pat_next[last]= I_total - sum_pat;
     patterns_next[pat_num - 1] = matrixSub(I_total,sum_pat);
 
@@ -78,31 +78,49 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       // f = sum(abs(res),3);
       cost_value_next += sumImage(matrixAbs(residual[j]));
     }
+    saveImage(patterns_next[0], "data/outputs/pat_next.jpg");
 
     // if the cost value increases, descard the update and decrease the step
     if (cost_value_next>cost_value){
+      printf("decard update\n");
       patterns_next = patterns;
       step = step / 2;
+    } else {
+      patterns = patterns_next;
+      i++;
     }
-  }
+  } while (i < ITER_NUM);
+  saveImage(patterns_next[0], "data/outputs/pat.jpg");
 
   //covariance of inputs&patterns
   vector<vector<double> > covar(IMG_SIZE, vector<double>(IMG_SIZE, 0));
-  patterns = patterns_next;
-
-  for (int i = 0;i < pat_num; i++){
-    covar = matrixAdd(covar, covariance(patterns[i],inputs[i])); 
+  
+  
+  printf("begin covariance\n");
+  vector<double> input(pat_num, 0);
+  vector<double> pattern(pat_num, 0);
+  for (int i = 0; i < IMG_SIZE; i++){
+    for (int j = 0; j < IMG_SIZE; j++){
+      double mean_input = 0.0;
+      double mean_pat = 0.0;
+      for (int k = 0; k < this->pat_num; k++){
+        input[k] = inputs[k][i][j];
+        pattern[k] = patterns[k][i][j];
+        mean_input += input[k];
+        mean_pat += pattern[k];
+      }
+      mean_input /= this->pat_num;
+      mean_pat /= this->pat_num;
+      for (int k = 0; k < this->pat_num; k++){
+        input[k] -= mean_input;
+        pattern[k] -= mean_pat;
+        covar[i][j] += input[k] * pattern[k];
+      }
+      covar[i][j] /= (pat_num - 1);
+    }
   }
-  // covar = matrixScalarMul(covar, 1.0/(pat_num-1));
-  return covar;
-}
 
-vector<vector<double> > BSIM::covariance(vector<vector<double> > input, vector<vector<double> > pattern){
-  // vector<vector<double> > mean_input = matrixColMean(input);
-  // vector<vector<double> > mean_pattern = matrixColMean(pattern);
-  // input =  matrixSub(input, mean_input);
-  // pattern = matrixSub(pattern, mean_input);
-  return matrixMul(input, pattern);
+  return covar;
 }
 
 int main()
@@ -112,27 +130,31 @@ int main()
   // convert now to string form
   char* dt = ctime(&now);
 
-  cout << "The local date and time is: " << dt << endl;
-  // InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
-  // vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
-  BSIM *bsim = new BSIM(PATTERN_NUM);
-  vector<vector<vector<double> > > inputs(PATTERN_NUM, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-  vector<vector<double> > psf;
-  vector<vector<double> > psfn;
-  for (int i=0;i<PATTERN_NUM;i++){
-    inputs[i]=readImage("imgs/inputs/input_"+to_string(i)+".jpg");
-  }
-  psf=readImage("imgs/psf.jpg");
-  psfn=readImage("imgs/psfn.jpg");
+  printf("The local date and time is: ");
+  printf("%s", dt);
+  
+  InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
+  vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
+  
+  // BSIM *bsim = new BSIM(PATTERN_NUM);
+  // vector<vector<vector<double> > > inputs(PATTERN_NUM, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  // vector<vector<double> > psf;
+  // vector<vector<double> > psfn;
+  // for (int i=0;i<PATTERN_NUM;i++){
+  //   inputs[i]=readData("data/inputs/input_"+to_string(i)+".txt");
+  // }
+  // psf=readData("data/psf.txt");
+  // psfn=readData("data/psfn.txt");
 
-  vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
-  // saveImage(result, "imgs/result.jpg");
+  // vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
+  // saveImage(result, "data/outputs/result.jpg");
+
   time_t fin = time(0);
    
   // convert now to string form
   char* dt_fin = ctime(&fin);
-
-  cout << "The local date and time is: " << dt_fin << endl;
+  printf("The local date and time is: ");
+  printf("%s", dt_fin);
   printf("Success!\n");
   return 0;
 }

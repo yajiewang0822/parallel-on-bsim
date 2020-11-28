@@ -5,6 +5,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <string>
 #include <Eigen/Dense>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 #define NA_SPEC 0.9
@@ -28,6 +30,7 @@ vector<vector<double> > matrixScalarMul(vector<vector<double> > matrix, double m
 vector<vector<double> > matrixColMean(vector<vector<double> > matrix);
 double sumImage(vector<vector<double> > input);
 void saveImage(vector<vector<double> > input, string filename);
-vector<vector<double> > readImage(string filename);
+void saveData(vector<vector<double> > input, string filename);
+vector<vector<double> > readData(string filename);
 void circshift(fftw_complex *out, fftw_complex *in, int xdim, int ydim, int xshift, int yshift);
 void circshift_double(double *out, double *in, int xdim, int ydim, int xshift, int yshift);
