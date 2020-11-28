@@ -8,7 +8,7 @@
 #include <vector>
 using namespace std;
 
-#define ITER_NUM 80
+#define ITER_NUM 50
 
 class BSIM
 {
