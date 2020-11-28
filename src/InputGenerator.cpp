@@ -10,8 +10,6 @@ using namespace std;
 
 InputGenerator::InputGenerator(double NA_spec, int pattern_num, int p_size)
 {
-  this->OTF = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
-  this->OTFn = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
     vector<double> v1(IMG_SIZE,0);
     this->psf.push_back(v1);
@@ -26,42 +24,49 @@ InputGenerator::InputGenerator(double NA_spec, int pattern_num, int p_size)
 
 vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 {
-  int pat_num = this->pattern_num;
   
+  // generate objective
   vector<vector<double> > objective = this->GenerateObjective();
-  saveImage(objective, "objective.jpg");
   double obj_sum = sumImage(objective);
-  GeneratePSFandOTF(NA, PSF);
-  saveImage(this->psf, "psf.jpg");
+
+  // generate psf and psfn
+  GeneratePSF(NA, PSF);
+  saveImage(this->psf, "imgs/psf.jpg");
   this->psf[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
-  GeneratePSFandOTF(NA_spec, PSFN);
+  GeneratePSF(NA_spec, PSFN);
+  saveImage(this->psfn, "imgs/psfn.jpg");
   this->psfn[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
+
+  // generate widefield
   vector<vector<double> > widefield = fconv2(objective, this->psf);
-  
-  saveImage(widefield, "widefield.jpg");
-  // vector<vector<vector<double> > > patterns = this->GeneratePatterns();
+  saveImage(widefield, "imgs/widefield.jpg");
+
+  //genearte patterns
+  int pat_num = this->pattern_num;
+  vector<vector<vector<double> > > patterns = this->GeneratePatterns();
+
   vector<vector<double> > pat_mean(pat_num, vector<double>(pat_num, 0));
   vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-  // for (int i = 0; i < pat_num; i++)
-  // {
-  //   for (int j = 0; j < size; j++)
-  //   {
-  //     for (int k = 0; k < size; k++)
-  //     {
-  //       inputs[i][j][k] = objective[j][k] * patterns[i][j][k];
-  //     }
-  //   }
-  //   inputs[i] = fastConvolution(inputs[i], this->psf);
-  // }
+  for (int i = 0; i < pat_num; i++)
+  {
+    for (int j = 0; j < IMG_SIZE; j++)
+    {
+      for (int k = 0; k < IMG_SIZE; k++)
+      {
+        inputs[i][j][k] = objective[j][k] * patterns[i][j][k];
+      }
+    }
+    inputs[i] = fconv2(inputs[i], this->psf);
+    saveImage(inputs[i], "imgs/inputs/input_" + to_string(i)+".jpg");
+  }
   return inputs;
 }
 
-void InputGenerator::GeneratePSFandOTF(double effect_NA, PSF_TYPE type)
+void InputGenerator::GeneratePSF(double effect_NA, PSF_TYPE type)
 {
-  //Use bessel function this->psf and FFT
+  //Use bessel function to calculate psf
   // psf=abs(2*besselj(1,2*pi./lambda*NA*R*psize+eps,1)...
   //     ./(2*pi./lambda*NA*R*psize+eps)).^2;
-  // psf0=psf/max(max(psf));
   int xc = round(IMG_SIZE / 2);
   int yc = round(IMG_SIZE / 2);
   double scale=2*PI/LAMBDA*NA*p_size;
@@ -85,24 +90,6 @@ void InputGenerator::GeneratePSFandOTF(double effect_NA, PSF_TYPE type)
       }
     }
   }
-
-
-  // %Generate OTF
-  // OTF2d=fftshift(fft2(psf));
-  // OTF2dmax = max(max(abs(OTF2d)));
-  // OTF2d = OTF2d./OTF2dmax;
-  // OTF2dc = abs(OTF2d);
-  switch (type)
-      {
-      case PSF:
-        fft2(this->psf, this->OTF);
-        break;
-      case PSFN:
-        fft2(this->psfn, this->OTFn);
-        break;
-      default:
-        break;
-      }
 }
 
 vector<vector<double> > InputGenerator::GenerateObjective()
@@ -143,9 +130,7 @@ vector<vector<double> > InputGenerator::GenerateObjective()
       break;
     }
   }
-  // for (int i=0;i<size;i++){
-  //   printf("%f ",result[10][i]);
-  // }
+  saveImage(result, "imgs/objective.jpg");
   return result;
 }
 
@@ -170,20 +155,24 @@ vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
     {
       idx[i] = i;
     }
+    int offset = k * pat_num / 3;
     random_shuffle(idx.begin(), idx.end());
-    int offset = (k - 1) * pat_num / 3;
+    
     for (int i = 0; i < pat_num / 3; i++)
     {
       int count = 0;
       while (count < NUM_SPECKLE)
       {
-        int index = idx[(i - 1) * NUM_SPECKLE + count];
+
+        int index = idx[i * NUM_SPECKLE + count];
+        
         int pos_y = index / IMG_SIZE;
         int pos_x = index - pos_y * IMG_SIZE;
         pattern[offset + i][pos_x][pos_y] = 1;
         count += 1;
       }
       pattern[offset + i]=fconv2(pattern[offset + i],this->psfn);
+      // saveImage(pattern[offset + i], "imgs/pats/pat_" + to_string(offset + i)+".jpg");
     }
   }
 

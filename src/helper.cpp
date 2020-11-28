@@ -36,18 +36,9 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
   }
   double sum = sumImage(filter);
   result = matrixScalarMul(result, (1.0/sum));
-  double sum1 = sumImage(result);
-  printf("%f\n", sum1);
   fftw_free(obj_fft);
   fftw_free(filter_fft);
   fftw_free(result_fft);
-  return result;
-}
-
-//TODO: with Halide/FFTW, different from inversion
-vector<vector<double> > deconvlucy(vector<vector<double> > obj, vector<vector<double> > filter)
-{
-  vector<vector<double> > result;
   return result;
 }
 
@@ -78,15 +69,6 @@ vector<vector<double > > ifft2(fftw_complex *input){
   }
   fftw_free(output_temp);
   return output;
-}
-
-vector<vector<complex<double> > > getValueOfComplex(vector<vector<complex<double> > > input){
-  for (int i = 0; i < IMG_SIZE; i++){
-    for (int j = 0; j < IMG_SIZE; j++){
-      input[i][j]= input[i][j] * conj(input[i][j]);
-    }
-  }
-  return input;
 }
 
 //TODO: with Halide
@@ -213,8 +195,22 @@ void saveImage(vector<vector<double> > input, string filename){
   cv::Mat img_mat_tmp(IMG_SIZE,IMG_SIZE,CV_64F);
   memcpy(img_mat_tmp.data, img, IMG_SIZE*IMG_SIZE*sizeof(double));
   cv::normalize(img_mat_tmp,img_mat, 255.0, 0.0, cv::NORM_MINMAX,-1, cv::noArray());
-  printf("show img!\n");
   cv::imwrite(filename,img_mat);
+}
+
+vector<vector<double> > readImage(string filename){
+  cv::Mat img_mat = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+  cv::Mat img_double;
+  img_mat.convertTo(img_double, CV_64F);
+  double img[IMG_SIZE][IMG_SIZE];
+  vector<vector<double> > output(IMG_SIZE, vector<double>(IMG_SIZE,0));
+  memcpy(img, img_double.data, IMG_SIZE*IMG_SIZE*sizeof(double));
+  for (int i = 0;i < IMG_SIZE; i++){
+    for (int j = 0;j < IMG_SIZE; j++){
+      output[i][j] = img[i][j];
+    }
+  }
+  return output;
 }
 
 void circshift(fftw_complex *out, fftw_complex *in, int xdim, int ydim, int xshift, int yshift){
