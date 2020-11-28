@@ -133,21 +133,21 @@ int main()
   printf("The local date and time is: ");
   printf("%s", dt);
   
-  InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
-  vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
+  // InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
+  // vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
   
-  // BSIM *bsim = new BSIM(PATTERN_NUM);
-  // vector<vector<vector<double> > > inputs(PATTERN_NUM, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-  // vector<vector<double> > psf;
-  // vector<vector<double> > psfn;
-  // for (int i=0;i<PATTERN_NUM;i++){
-  //   inputs[i]=readData("data/inputs/input_"+to_string(i)+".txt");
-  // }
-  // psf=readData("data/psf.txt");
-  // psfn=readData("data/psfn.txt");
+  BSIM *bsim = new BSIM(PATTERN_NUM);
+  vector<vector<vector<double> > > inputs(PATTERN_NUM, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  vector<vector<double> > psf;
+  vector<vector<double> > psfn;
+  for (int i=0;i<PATTERN_NUM;i++){
+    inputs[i]=readData("data/inputs/input_"+to_string(i)+".txt");
+  }
+  psf=readData("data/psf.txt");
+  psfn=readData("data/psfn.txt");
 
-  // vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
-  // saveImage(result, "data/outputs/result.jpg");
+  vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
+  saveImage(result, "data/outputs/result.jpg");
 
   time_t fin = time(0);
    
