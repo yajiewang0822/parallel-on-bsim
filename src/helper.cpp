@@ -5,41 +5,84 @@ using namespace std;
 //TODO: with Halide/FFTW
 vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double> > filter)
 {
-  vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
-  fftw_complex *obj_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
-  fftw_complex *filter_fft= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  // vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
+  // fftw_complex *obj_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  // fftw_complex *filter_fft= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
   
-  fft2(obj, obj_fft);
-  fft2(filter, filter_fft);
-  cout<<"obj: "<<obj_fft[1][0]<<endl;
-  cout<<"filter: "<<filter_fft[1][0]<<endl;
+  // fft2(obj, obj_fft);
+  // fft2(filter, filter_fft);
+  // cout<<"obj: "<<obj_fft[1][0]<<endl;
+  // cout<<"filter: "<<filter_fft[1][0]<<endl;
 
-  fftw_complex *result_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
-  for(int i = 0; i < IMG_SIZE * IMG_SIZE; i++){
-    result_fft[i][0] = obj_fft[i][0] * filter_fft[i][0] - obj_fft[i][1] * filter_fft[i][1];
-    result_fft[i][1] = obj_fft[i][0] * filter_fft[i][1] + obj_fft[i][1] * filter_fft[i][0];
-  }
+  // fftw_complex *result_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  // for(int i = 0; i < IMG_SIZE * IMG_SIZE; i++){
+  //   result_fft[i][0] = obj_fft[i][0] * filter_fft[i][0] - obj_fft[i][1] * filter_fft[i][1];
+  //   result_fft[i][1] = obj_fft[i][0] * filter_fft[i][1] + obj_fft[i][1] * filter_fft[i][0];
+  // }
 
-  result = ifft2(result_fft);
+  // result = ifft2(result_fft);
 
-  double *result_in = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
-  double *result_out = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
-  for (int i=0;i<IMG_SIZE;i++){
-    for (int j=0;j<IMG_SIZE;j++){
-      result_in[(i*IMG_SIZE)+j] = result[i][j];
+  // double *result_in = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
+  // double *result_out = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
+  // for (int i=0;i<IMG_SIZE;i++){
+  //   for (int j=0;j<IMG_SIZE;j++){
+  //     result_in[(i*IMG_SIZE)+j] = result[i][j];
+  //   }
+  // }
+  // fftshift_double(result_out,result_in, IMG_SIZE, IMG_SIZE);
+  // for (int i=0;i<IMG_SIZE;i++){
+  //   for (int j=0;j<IMG_SIZE;j++){
+  //     result[i][j] = result_out[(i*IMG_SIZE)+j];
+  //   }
+  // }
+  // double sum = sumImage(filter);
+  // result = matrixScalarMul(result, (1.0/sum));
+  // fftw_free(obj_fft);
+  // fftw_free(filter_fft);
+  // fftw_free(result_fft);
+  // return result;
+
+  vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
+  // fftw_complex *obj_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * IMG_SIZE);
+  // fft2(obj, obj_fft);
+  // result = ifft2(obj_fft);
+
+  vector<vector<double> > in(256, vector<double>(256, 0));
+  fftw_complex *try_f = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
+  fftw_complex *try_ff= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
+  fftw_complex *try_fft= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
+  for (int i=0;i<256;i++){
+    for (int j=0;j<256; j++){
+      try_f[i*256+j][0]=i*256+j;
+      in[i][j]=i*256+j;
+      try_f[i*256+j][1]=0.0;
     }
   }
-  fftshift_double(result_out,result_in, IMG_SIZE, IMG_SIZE);
-  for (int i=0;i<IMG_SIZE;i++){
-    for (int j=0;j<IMG_SIZE;j++){
-      result[i][j] = result_out[(i*IMG_SIZE)+j];
+  saveData(in,"data/in.txt");
+  fftw_plan p1=fftw_plan_dft_2d(256, 256, try_f, try_fft, FFTW_FORWARD, FFTW_MEASURE);
+  fftw_execute(p1);
+  fftw_destroy_plan(p1);
+  fftw_plan p2=fftw_plan_dft_2d(256, 256, try_fft, try_ff, FFTW_BACKWARD, FFTW_MEASURE);
+  fftw_execute(p2);
+  fftw_destroy_plan(p2);
+  for (int i=0;i<256;i++){
+    for (int j=0;j<256; j++){
+      result[i][j]=try_ff[i*256+j][0]/(256*256);
     }
   }
-  double sum = sumImage(filter);
-  result = matrixScalarMul(result, (1.0/sum));
-  fftw_free(obj_fft);
-  fftw_free(filter_fft);
-  fftw_free(result_fft);
+  // double *result_in = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
+  // double *result_out = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
+  // for (int i=0;i<IMG_SIZE;i++){
+  //   for (int j=0;j<IMG_SIZE;j++){
+  //     result_in[(i*IMG_SIZE)+j] = result[i][j];
+  //   }
+  // }
+  // fftshift_double(result_out,result_in, IMG_SIZE, IMG_SIZE);
+  // for (int i=0;i<IMG_SIZE;i++){
+  //   for (int j=0;j<IMG_SIZE;j++){
+  //     result[i][j] = result_out[(i*IMG_SIZE)+j];
+  //   }
+  // }
   return result;
 }
 
@@ -48,7 +91,7 @@ void fft2(vector<vector<double> > input, fftw_complex *output){
   for (int i=0;i<IMG_SIZE;i++){
     for (int j=0;j<IMG_SIZE;j++){
       input_temp[(i*IMG_SIZE)+j][0]=input[i][j];
-      input_temp[(i*IMG_SIZE)+j][1]=0;
+      input_temp[(i*IMG_SIZE)+j][1]=0.0;
     }
   }
   fftw_plan p=fftw_plan_dft_2d(IMG_SIZE, IMG_SIZE, input_temp, output, FFTW_FORWARD, FFTW_MEASURE);
@@ -62,12 +105,15 @@ vector<vector<double > > ifft2(fftw_complex *input){
   vector<vector<double> > output(IMG_SIZE,vector<double>(IMG_SIZE,0));
   fftw_plan p=fftw_plan_dft_2d(IMG_SIZE, IMG_SIZE, input, output_temp, FFTW_BACKWARD, FFTW_MEASURE);
   fftw_execute(p);
-  fftw_destroy_plan(p);
   for (int i=0;i<IMG_SIZE;i++){
     for (int j=0;j<IMG_SIZE;j++){
-      output[i][j] = output_temp[(i*IMG_SIZE)+j][0];
+      output[i][j] = output_temp[(i*IMG_SIZE)+j][0]/(IMG_SIZE*IMG_SIZE);
+      if ( output_temp[(i*IMG_SIZE)+j][1]>0.0001){
+        cout<<output_temp[(i*IMG_SIZE)+j][1]<<" ";
+      }
     }
   }
+  fftw_destroy_plan(p);
   fftw_free(output_temp);
   return output;
 }

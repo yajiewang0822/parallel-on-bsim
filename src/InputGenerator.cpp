@@ -41,7 +41,7 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 
   // generate widefield
   vector<vector<double> > widefield = fconv2(objective, this->psf);
-  // saveImage(widefield, "imgs/widefield.jpg");
+  saveImage(widefield, "imgs/widefield.jpg");
   saveData(widefield, "data/widefield.txt");
 
   //genearte patterns
