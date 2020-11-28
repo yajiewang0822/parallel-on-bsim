@@ -47,27 +47,32 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
   // fft2(obj, obj_fft);
   // result = ifft2(obj_fft);
 
-  vector<vector<double> > in(256, vector<double>(256, 0));
-  fftw_complex *try_f = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
-  fftw_complex *try_ff= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
-  fftw_complex *try_fft= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
-  for (int i=0;i<256;i++){
-    for (int j=0;j<256; j++){
-      try_f[i*256+j][0]=i*256+j;
-      in[i][j]=i*256+j;
-      try_f[i*256+j][1]=0.0;
+  vector<vector<double> > in(3, vector<double>(3, 0));
+  double *try_f=(double*) malloc(sizeof(double)*3*3);
+  double *try_ff=(double*) malloc(sizeof(double)*3*3);
+  // fftw_complex *try_f = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
+  // fftw_complex *try_ff= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 256*256);
+  fftw_complex *try_fft= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 3*(3/2+1));
+  for (int i=0;i<3;i++){
+    for (int j=0;j<3; j++){
+      try_f[i*3+j]=i*3+j;
+      in[i][j]=i*3+j;
+      // try_f[i*256+j][1]=0.0;
     }
   }
-  saveData(in,"data/in.txt");
-  fftw_plan p1=fftw_plan_dft_2d(256, 256, try_f, try_fft, FFTW_FORWARD, FFTW_MEASURE);
+  fftw_plan p1=fftw_plan_dft_r2c_1d(9, try_f, try_fft, FFTW_MEASURE);
   fftw_execute(p1);
   fftw_destroy_plan(p1);
-  fftw_plan p2=fftw_plan_dft_2d(256, 256, try_fft, try_ff, FFTW_BACKWARD, FFTW_MEASURE);
+  for (int i=0;i<6;i++){
+    cout<<try_fft[i][0]<<"+"<<try_fft[i][1]<<"i ";
+  }
+  cout<<endl;
+  fftw_plan p2=fftw_plan_dft_c2r_1d(9, try_fft, try_ff, FFTW_MEASURE);
   fftw_execute(p2);
   fftw_destroy_plan(p2);
-  for (int i=0;i<256;i++){
-    for (int j=0;j<256; j++){
-      result[i][j]=try_ff[i*256+j][0]/(256*256);
+  for (int i=0;i<3;i++){
+    for (int j=0;j<3; j++){
+      cout<<try_ff[i*3+j]/(3*3)<<" ";
     }
   }
   // double *result_in = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
