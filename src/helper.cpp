@@ -1,9 +1,23 @@
+/**
+ * This file contains all the arithematic functions needed to run the simulation. 
+ * Those funsitons include convlolution, FFT, and matrix operations. 
+ * It also involves file IO to store the image. 
+ * 
+ * @author: Peicheng Tang 
+ * @author: Yajie Wang
+ */
 #include "helper.h"
 
 
 using namespace std;
-//TODO: with Halide/FFTW
-// 2D FFT Convolution of two real number matrix
+//TODO: with Halide
+/**
+ * 2D Fast Convolution of two real number matrix based on FFT 
+ * 
+ * @param obj, input matrix
+ * @param filter, input filter
+ * @return matrix after convolution.
+ */
 vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double> > filter)
 {
   vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
@@ -46,6 +60,12 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
   return result;
 }
 
+/**
+ * 2D FFT 
+ * 
+ * @param input, matrix to perform FFT
+ * @param output, FFT result
+ */
 void fft2(vector<vector<double> > input, fftw_complex *output){
   double *input_temp = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
@@ -59,6 +79,12 @@ void fft2(vector<vector<double> > input, fftw_complex *output){
   free(input_temp);
 }
 
+/**
+ * 2D inverse FFT 
+ * 
+ * @param input, FFTed matrix containing complex part. 
+ * @return image matrix with real number as its data 
+ */
 vector<vector<double > > ifft2(fftw_complex *input){
   double *output_temp = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
   vector<vector<double> > output(IMG_SIZE,vector<double>(IMG_SIZE,0));
@@ -174,6 +200,13 @@ vector<vector<double> > matrixMul(vector<vector<double> > matrix1, vector<vector
   return result; 
 }
 
+
+/**
+ * Get the sum of all the image data
+ * 
+ * @param input 
+ * @return the sum of the image
+ */
 double sumImage(vector<vector<double> > input)
 {
   double sum = 0;
@@ -187,6 +220,13 @@ double sumImage(vector<vector<double> > input)
   return sum;
 }
 
+/**
+ * Save image to specific path with specific filename
+ * Will normolize the data to 0-255
+ * 
+ * @param input, input image data
+ * @param filename, filename 
+ */
 void saveImage(vector<vector<double> > input, string filename){
   double img[IMG_SIZE][IMG_SIZE];
   for (int i = 0;i < IMG_SIZE; i++){
@@ -201,6 +241,13 @@ void saveImage(vector<vector<double> > input, string filename){
   cv::imwrite(filename,img_mat);
 }
 
+
+/**
+ * Save data to specific path with specific filename
+ * 
+ * @param input, input data
+ * @param filename, filename 
+ */
 void saveData(vector<vector<double> > input, string filename){
   ofstream myfile;
   myfile.open (filename);
@@ -212,6 +259,12 @@ void saveData(vector<vector<double> > input, string filename){
   myfile.close();
 }
 
+/**
+ * Read the image data from file
+ * 
+ * @param filename, file  storing the data
+ * @return image data as matrix
+ */
 vector<vector<double> > readData(string filename){
   vector<vector<double> > output(IMG_SIZE, vector<double>(IMG_SIZE,0));
   ifstream myfile;
@@ -225,6 +278,16 @@ vector<vector<double> > readData(string filename){
   return output;
 }
 
+/**
+ * Circular shift the complex array
+ * 
+ * @param out, shifted complex array
+ * @param in, complex array to be shifted
+ * @param xdim, dimension of x
+ * @param ydim, dimension of y
+ * @param xshift, shift amount of x
+ * @param yshift, shift amount of y
+ */
 void circshift(fftw_complex *out, fftw_complex *in, int xdim, int ydim, int xshift, int yshift){
   for (int i = 0; i < xdim; i++) {
     int ii = (i + xshift) % xdim;
@@ -236,6 +299,16 @@ void circshift(fftw_complex *out, fftw_complex *in, int xdim, int ydim, int xshi
   }
 }
 
+/**
+ * Circular shift the double array
+ * 
+ * @param out, shifted double array
+ * @param in, double array to be shifted
+ * @param xdim, dimension of x
+ * @param ydim, dimension of y
+ * @param xshift, shift amount of x
+ * @param yshift, shift amount of y
+ */
 void circshift_double(double *out, double *in, int xdim, int ydim, int xshift, int yshift){
   for (int i = 0; i < xdim; i++) {
     int ii = (i + xshift) % xdim;

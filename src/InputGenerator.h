@@ -1,3 +1,9 @@
+/**
+ * This is the header file of our inpute generator. 
+ * 
+ * @author: Peicheng Tang 
+ * @author: Yajie Wang
+ */
 #include <vector>
 #include <limits>
 #include <random>

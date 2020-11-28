@@ -1,3 +1,10 @@
+/**
+ * This file contains the main function to run the simulation. 
+ * It includes the reconstruction step involveing proximal gradient descent
+ * 
+ * @author: Peicheng Tang 
+ * @author: Yajie Wang
+ */
 #include "InputGenerator.h"
 
 #include "helper.h"
@@ -9,8 +16,16 @@ BSIM::BSIM(int pat_num){
   this->pat_num = pat_num;
 }
 
-// Reconstruct the high-resolution result based on inputs and psf of both microscopy and illumination
-// Using fast proximal gradient descending algorithm to get the final result
+/**
+ * Reconstruct the high-resolution result based on low-resolution inputs
+ * Using fast proximal gradient descending algorithm to get the final result
+ * 
+ * @param inputs, low-resolution inputs
+ * @param psfn, point spread function of illumination
+ * @param psf, point spread function of the microscope
+ * 
+ * @return high-resolution result
+ */
 vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
   
   //initial guess on objective
@@ -100,9 +115,8 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
 
 
   //covariance of inputs&patterns
-  vector<vector<double> > covar(IMG_SIZE, vector<double>(IMG_SIZE, 0));
-
   printf("begin covariance\n");
+  vector<vector<double> > covar(IMG_SIZE, vector<double>(IMG_SIZE, 0));
   vector<double> input(pat_num, 0);
   vector<double> pattern(pat_num, 0);
   for (int i = 0; i < IMG_SIZE; i++){

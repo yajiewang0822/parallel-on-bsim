@@ -1,3 +1,10 @@
+/**
+ * This is header file of BSIM 
+ * 
+ * @author: Peicheng Tang 
+ * @author: Yajie Wang
+ */
+
 #include <vector>
 using namespace std;
 

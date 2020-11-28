@@ -1,3 +1,10 @@
+/**
+ * This file contains functions to generate input images we need for the simulaiton
+ * including input image, pattern, and point spread function and etc.
+ * 
+ * @author: Peicheng Tang 
+ * @author: Yajie Wang
+ */
 #include "InputGenerator.h"
 #include <boost/math/special_functions/bessel.hpp>
 #include "helper.h"
@@ -17,7 +24,12 @@ InputGenerator::InputGenerator(double NA_spec, int pattern_num, int p_size)
   this->p_size = p_size;
 }
 
-
+/**
+ * This function generates inputs needed for the simulation
+ * 
+ * @return a 3-D matrix containing all the inputs. Each input is the result of convolution 
+ * between images under specific illumination pattern and the microscopy system.
+ */
 vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 {
   
@@ -26,16 +38,18 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 
   // generate psf and psfn
   GeneratePSF(NA, PSF);
-  // saveImage(this->psf, "imgs/psf.jpg");
-  // saveData(this->psf, "data/psf.txt");
   this->psf[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
   GeneratePSF(NA_spec, PSFN);
-  // saveImage(this->psfn, "imgs/psfn.jpg");
-  // saveData(this->psfn, "data/psfn.txt");
   this->psfn[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
 
   // generate widefield
   vector<vector<double> > widefield = fconv2(objective, this->psf);
+
+  // NOTE: uncomment the following if you want to view the image or view the raw data 
+  // saveImage(this->psf, "imgs/psf.jpg");
+  // saveData(this->psf, "data/psf.txt");
+  // saveImage(this->psfn, "imgs/psfn.jpg");
+  // saveData(this->psfn, "data/psfn.txt");
   // saveImage(widefield, "imgs/widefield.jpg");
   // saveData(widefield, "data/widefield.txt");
 
@@ -55,12 +69,21 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
       }
     }
     inputs[i] = fconv2(inputs[i], this->psf);
-    saveImage(inputs[i], "imgs/inputs/input_" + to_string(i)+".jpg");
-    saveData(inputs[i], "data/inputs/input_" + to_string(i)+".txt");
+
+    // NOTE: uncomment the following if you want to view the image or view the raw data 
+    // saveImage(inputs[i], "imgs/inputs/input_" + to_string(i)+".jpg");
+    // saveData(inputs[i], "data/inputs/input_" + to_string(i)+".txt");
   }
   return inputs;
 }
 
+
+/**
+ * This function generates point spread function of specific numerical apecture based on bessel function
+ * 
+ * @param effect_NA
+ * @param type
+ */
 void InputGenerator::GeneratePSF(double effect_NA, PSF_TYPE type)
 {
   //Use bessel function to calculate psf
@@ -88,7 +111,11 @@ void InputGenerator::GeneratePSF(double effect_NA, PSF_TYPE type)
     }
   }
 }
-
+/**
+ * Generate the objective used for simulation.
+ * The objective is designed to quickly get the resolution result, which
+ * contains serveral-level resolution blocks.
+ */
 vector<vector<double> > InputGenerator::GenerateObjective()
 {
   double pixel_resolution = 0.5 * LAMBDA / this->NA_spec / this->p_size;
@@ -127,21 +154,37 @@ vector<vector<double> > InputGenerator::GenerateObjective()
       break;
     }
   }
+  // NOTE: uncomment the following if you want to view the image or view the raw data 
   // saveImage(result, "imgs/objective.jpg");
-  saveData(result, "data/obj.txt");
+  // saveData(result, "data/obj.txt");
   return result;
 }
 
+/**
+ * This function obtains point spread function
+ * 
+ * @return the psf of the simulation
+ */
 vector<vector<double> > InputGenerator::getPSF()
 {
   return this->psf;
 }
 
+/**
+ * This function obtains point spread function of illumination
+ * 
+ * @return the psfn of the simulation
+ */
 vector<vector<double> > InputGenerator::getPSFn()
 {
   return this->psfn;
 }
 
+/**
+ * This function generates the illumination patterns required for the simulation
+ * 
+ * @return a 3-D matrix containing all the patterns
+ */
 vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
 {
   int pat_num = this->pattern_num;
@@ -170,6 +213,7 @@ vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
         count += 1;
       }
       pattern[offset + i]=fconv2(pattern[offset + i],this->psfn);
+      // NOTE: uncomment the following if you want to view the image
       // saveImage(pattern[offset + i], "imgs/pats/pat_" + to_string(offset + i)+".jpg");
     }
   }
