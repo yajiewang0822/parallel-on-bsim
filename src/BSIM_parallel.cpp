@@ -43,7 +43,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     }
   }
   obj=matrixScalarMul(obj, (1.0/coeffect));
-  saveImage(inputs[0], "data/outputs/input.jpg");
+
 
   //initial guess on the illumination patterns
   double t_prev = 1.0;
@@ -71,7 +71,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       // f = sum(abs(res),3);
       cost_value += sumImage(matrixAbs(residual[j]));
     }
-
+    
 
     // calculate gradient
     vector<vector<double> > gradient(IMG_SIZE,vector<double>(IMG_SIZE, 0));
@@ -83,11 +83,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       patterns_next[j] = matrixSub(patterns[j], matrixScalarMul(gradient, step));
       // pat_next = pat + alpha * (pat_next - pat);
       patterns_next[j] = matrixAdd(patterns[j], matrixScalarMul(matrixSub(patterns_next[j], patterns[j]), alpha));
-      // sum_pat = sum(pat_next, 3);
-      // sum_pat = matrixAdd(sum_pat,patterns_next[j]);
     }
-    // pat_next[last]= I_total - sum_pat;
-    // patterns_next[pat_num - 1] = matrixSub(I_total,sum_pat);
 
 
     // recalculate the residual and cost
@@ -97,12 +93,11 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       // f = sum(abs(res),3);
       cost_value_next += sumImage(matrixAbs(residual[j]));
     }
-    saveImage(patterns_next[0], "data/outputs/pat_next.jpg");
 
 
-    // if the cost value increases, descard the update and decrease the step
+    // if the cost value increases, discard the update and decrease the step
     if (cost_value_next>cost_value){
-      printf("i: %d; decard update      ", i);
+      printf("i: %d; discard update      ", i);
       fflush(stdout);
       patterns_next = patterns;
       step = step / 2;
@@ -113,7 +108,6 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       i++;
     }
   } while (i < ITER_NUM);
-  saveImage(patterns_next[0], "data/outputs/pat.jpg");
 
 
   //covariance of inputs&patterns
@@ -154,12 +148,13 @@ int main()
 
   printf("The local date and time is: ");
   printf("%s", dt);
+
+  BSIM *bsim = new BSIM(PATTERN_NUM);
   
+  // Uncomment if want to get new generated data
   InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
   vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
   
-  BSIM *bsim = new BSIM(PATTERN_NUM);
-
   // Uncomment if want to read data from the file
   // vector<vector<vector<double> > > inputs(PATTERN_NUM, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
   // vector<vector<double> > psf;
@@ -172,7 +167,7 @@ int main()
   // vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
 
   vector<vector<double> > result = bsim->Reconstruction(inputs, inputGenerator->getPSFn(), inputGenerator->getPSF());
-  saveImage(result, "data/outputs/result.jpg");
+  saveImage(result, "imgs/outputs/result.jpg");
 
   time_t fin = time(0);
    
