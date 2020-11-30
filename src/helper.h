@@ -10,10 +10,11 @@
 #include <vector>
 #include <complex>
 #include <fftw3.h>
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
+#include <opencv2/core/core.hpp>
+//#include <opencv2/imgcodes/imgcodecs.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <string>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <fstream>
 #include <cmath>

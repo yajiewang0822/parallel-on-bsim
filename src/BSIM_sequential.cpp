@@ -27,8 +27,7 @@ BSIM::BSIM(int pat_num){
  * @return high-resolution result
  */
 vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
-  
-  //initial guess on objective
+    //initial guess on objective
   int pat_num = this->pat_num;
   double coeffect=0.0;
   vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
