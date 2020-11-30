@@ -39,9 +39,42 @@ During the poster session, depending on the result, we may be able to have a liv
 We would like to use C++ and Halide to code our program running in Latedays. 
 We are still deciding whether we use OpenMP or MPI to parallelize our code. We would like to choose wither OpenMP or MPI as we have a better understanding of how the parallel process should look like as we read the related paper.
 
-## Schedule 
+<s> ## Schedule 
 - Week1(11.5  - 11.11): Learn to use Halide and read about paper to parallelize SGD and start port code from MATLAB to C++
 - Week2(11.12 - 11.18): Finish code in C++
 - Week3(11.19 - 11.25): Work on parallelizing BSIM
 - Week4(11.26 - 12.2):  Continue work and debug the parallel BSIM
-- Week5(12.3  - 12.9):  Collect result, write reports, and prepare the poster sessoon. 
+- Week5(12.3  - 12.9):  Collect result, write reports, and prepare the poster sessoon. </s>
+
+# Parallel on BSIM Checkpoint
+
+### Timeline
+- 11.7-11.9 Write sequential code for the first part of BSIM: Simulate microscope imaging process to get all the input images(Yajie) and related helper functions (Peicheng) 
+- 11.10-11.12 Try applying Halide for convolution (Both). 
+- 11.13-11.15 Move on writing sequential code for the second part of BSIM: Reconstruct high-resolution image from all the input images (Both).
+- 11.16-11.21 Change our plan to use FFTW(Yajie) and Eigen(Peicheng) for convolution and matrix operations respectively. 
+- 11.22-11.24 Apply opencv to the project(Peicheng). Debug the input images based on opencv(Yajie).
+- 11.25-11.27 Debug the reconstruction result(Both). 
+- 11.27-11.30 Starting parallelizing BSIM
+- (expected)12.1- 12.7 Finish parallel version of BSIM 
+- (expected) 12.7-12.11 Debug and improve the parallel version 
+- (expected) 12.12-12.4 Collect results, finish report and prepare the poster session 
+
+### Completed work
+We finished porting the Matlab code to the sequential C++ code of BSIM as our baseline. There were some changes of plan we originally had. Instead of using Halide, we decided to use both FFTW and Eigen libraries in our implementation, which involved major changes of data types in our code.  The reason we initially planned to use Halide was that it has FFT related functions that we could take advantage of. However, when we did some research about Halide, we found that Halide may not be so good with large image convolution in CPU[1]. In addition, the source code for Matlab doing FFT used the FFTW library. We believed that using the same library can better compare our C++ implementation to the Matlab version of the code. Using Halide in GPU might be a “nice-to have” topic as we found that Halide in GPU had better performance[2]. However, we probably would not have sufficient time to do this. During the period, we also thought about how to parallelize the proximal gradient descent portion of our code. 
+
+### Goals and Deliverables 
+Comparing our current work status to the proposal, we are roughly one week behind the schedule due to change of plan from Halide to FFTW and Eigen. We spent about half a week learning about Halide but ended up not using it. We now have a more clear goal to achieve in the end. Our sequential C++ version needs around 30 minutes to run the entire BSIM while the Matlab version only takes about 7 minutes. We would try to make our parallel version have the speedup comparable to the Matlab version with 8 cores. In other words, around 4x speedup with 8 cores for parallel version.  
+
+### Plan for poster session
+In the poster session, we would show how the resolution is improved based on current paralleled code. We would highlight the improvement on performance and execution time in terms of bar charts and/or tables. We plan not to have a live demo due to the time limitation. As for now, our sequential version needs around 30 minutes to generate the result image. We anticipate less time with our parallel version, but we believe that the time required to run both versions and compare would be too much for the poster session. 
+
+### Reference
+[1] https://cacm.acm.org/magazines/2018/1/223877-halide/fulltext?mobile=false
+[2] https://dvicini.github.io/projects/bscthesis/vicini_bsc_thesis.pdf
+
+### Concerns
+We read about the Bridges machine system configuration and found out that they have multiple CPU nodes available. We need to read the Bridges user guide to see how we know which nodes we can use and how to connect to the specific nodes if possible. 
+We probably also need to figure out how MPI and OpenMP would assign jobs in the Bridges machine. 
+In our message passing process, we may need to communicate the image, which might be a huge data transfer and slow down the program. We need to test it when we finish the parallel version. 
+
