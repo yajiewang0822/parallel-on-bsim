@@ -34,6 +34,5 @@
 fftw-3.3.8
 src/halide
 Halide/
-src/Makefile
 src/data
 src/imgs
