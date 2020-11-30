@@ -39,12 +39,12 @@ During the poster session, depending on the result, we may be able to have a liv
 We would like to use C++ and Halide to code our program running in Latedays. 
 We are still deciding whether we use OpenMP or MPI to parallelize our code. We would like to choose wither OpenMP or MPI as we have a better understanding of how the parallel process should look like as we read the related paper.
 
-<s> ## Schedule 
-- Week1(11.5  - 11.11): Learn to use Halide and read about paper to parallelize SGD and start port code from MATLAB to C++
-- Week2(11.12 - 11.18): Finish code in C++
-- Week3(11.19 - 11.25): Work on parallelizing BSIM
-- Week4(11.26 - 12.2):  Continue work and debug the parallel BSIM
-- Week5(12.3  - 12.9):  Collect result, write reports, and prepare the poster sessoon. </s>
+ ## <s>Schedule</s> 
+- <s>Week1(11.5  - 11.11): Learn to use Halide and read about paper to parallelize SGD and start port code from MATLAB to C++</s>
+- <s>Week2(11.12 - 11.18): Finish code in C++</s>
+- <s>Week3(11.19 - 11.25): Work on parallelizing BSIM </s>
+- <s>Week4(11.26 - 12.2):  Continue work and debug the parallel BSIM </s>
+- <s>Week5(12.3  - 12.9):  Collect result, write reports, and prepare the poster sessoon. </s>
 
 # Parallel on BSIM Checkpoint
 
@@ -58,7 +58,7 @@ We are still deciding whether we use OpenMP or MPI to parallelize our code. We w
 - 11.27-11.30 Starting parallelizing BSIM
 - (expected)12.1- 12.7 Finish parallel version of BSIM 
 - (expected) 12.7-12.11 Debug and improve the parallel version 
-- (expected) 12.12-12.4 Collect results, finish report and prepare the poster session 
+- (expected) 12.12-12.14 Collect results, finish report and prepare the poster session 
 
 ### Completed work
 We finished porting the Matlab code to the sequential C++ code of BSIM as our baseline. There were some changes of plan we originally had. Instead of using Halide, we decided to use both FFTW and Eigen libraries in our implementation, which involved major changes of data types in our code.  The reason we initially planned to use Halide was that it has FFT related functions that we could take advantage of. However, when we did some research about Halide, we found that Halide may not be so good with large image convolution in CPU[1]. In addition, the source code for Matlab doing FFT used the FFTW library. We believed that using the same library can better compare our C++ implementation to the Matlab version of the code. Using Halide in GPU might be a “nice-to have” topic as we found that Halide in GPU had better performance[2]. However, we probably would not have sufficient time to do this. During the period, we also thought about how to parallelize the proximal gradient descent portion of our code. 
