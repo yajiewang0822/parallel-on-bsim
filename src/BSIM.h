@@ -17,5 +17,5 @@ private:
 public:
   BSIM(int pat_num);
   vector<vector<double> > Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf);
-  vector<vector<vector<double> > > gradientDescent(double coeffect, vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf);
+  vector<vector<vector<double> > > patternEstimation(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf);
 };

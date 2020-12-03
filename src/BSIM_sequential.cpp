@@ -29,7 +29,7 @@ BSIM::BSIM(int pat_num){
 vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
     //initial guess on objective
   int pat_num = this->pat_num;
-  double coeffect=0.0;
+  double coefficient=0.0;
   vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
   for(int i = 0; i < IMG_SIZE; i++){
     for(int j = 0; j < IMG_SIZE; j++){
@@ -38,16 +38,16 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
         temp += inputs[k][i][j];
       }
       obj[i][j] = temp/pat_num;
-      coeffect = max(coeffect, obj[i][j]);
+      coefficient = max(coefficient, obj[i][j]);
     }
   }
-  obj=matrixScalarMul(obj, (1.0/coeffect));
+  obj=matrixScalarMul(obj, (1.0/coefficient));
 
 
   //initial guess on the illumination patterns
   double t_prev = 1.0;
   double step = 1.0;
-  vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coeffect*0.1)));
+  vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coefficient*0.1)));
   vector<vector<vector<double> > > patterns_next(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
   
   

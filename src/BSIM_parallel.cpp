@@ -13,7 +13,7 @@
 #include <ctime>
 
 
-BSIM::BSIM(int pat_num){
+BSIM::BSIM(int pat_num{
   this->pat_num = pat_num;
 }
 
@@ -27,31 +27,33 @@ BSIM::BSIM(int pat_num){
  * 
  * @return high-resolution result
  */
-vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
-  
-  //initial guess on objective
-  int pat_num = this->pat_num;
-  double coeffect=0.0;
-  vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
-  for(int i = 0; i < IMG_SIZE; i++){
-    for(int j = 0; j < IMG_SIZE; j++){
-      double temp = 0;
-      for(int k = 0; k < pat_num; k++){
-        temp += inputs[k][i][j];
-      }
-      obj[i][j] = temp/pat_num;
-      coeffect = max(coeffect, obj[i][j]);
+vector<vector<double> > BSIM::Reconstruction(){
+
+  if (procID == ROOT){
+    
+    // receive cost_value
+
+    // TODO: save image in the end in ROOT
+    //saveImage(result, "imgs/outputs/result.jpg");
+  } else {
+    vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+    vector<vector<double> > psf;
+    vector<vector<double> > psfn;
+    int startIndex = procID * pat_num;
+    for (int i = startIndex; i < startIndex + pat_num; i++){
+      inputs[i - startIndex]=readData("data/inputs/input_"+to_string(i)+".txt");
     }
+    psf=readData("data/psf.txt");
+    psfn=readData("data/psfn.txt");
+
+    // patterns estimation
+  vector<vector<vector<double> > > patterns = patternEstimation(inputs, psfn, psf);
   }
-  obj=matrixScalarMul(obj, (1.0/coeffect));
-
 
   
-  
-  
+
   //covariance of inputs&patterns
-  printf("begin covariance\n");
-  patterns=gradientDescent(coeffect, )
+  printf("begin covariance\n"); 
   vector<vector<double> > covar(IMG_SIZE, vector<double>(IMG_SIZE, 0));
   vector<double> input(pat_num, 0);
   vector<double> pattern(pat_num, 0);
@@ -83,11 +85,27 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
   return covar;
 }
 
-vector<vector<vector<double> > > gradientDescent(, double coeffect, vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
+vector<vector<vector<double> > > BSIM::patternEstimation(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
+  //initial guess on objective
+  int pat_num = this->pat_num;
+  double coefficient=0.0;
+  vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
+  for(int i = 0; i < IMG_SIZE; i++){
+    for(int j = 0; j < IMG_SIZE; j++){
+      double temp = 0;
+      for(int k = 0; k < pat_num; k++){
+        temp += inputs[k][i][j];
+      }
+      obj[i][j] = temp/pat_num;
+      coefficient = max(coefficient, obj[i][j]);
+    }
+  }
+  obj=matrixScalarMul(obj, (1.0/coefficient));
+
 //initial guess on the illumination patterns
   double t_prev = 1.0;
   double step = 1.0;
-  vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coeffect*0.1)));
+  vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coefficient*0.1)));
   vector<vector<vector<double> > > patterns_next(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
   
 //fast proximal gradient descent
@@ -100,9 +118,7 @@ vector<vector<vector<double> > > gradientDescent(, double coeffect, vector<vecto
 // 2. Divide num_patterns based on num_processes, assign patterns to each, locally generate 
 // 3. Each processor runs Part B, C, D, Send the cost value in D if cost value is small enough.
 
-
-//master: array[p1v, p2v, p3v...]
-  int i=0;s
+  int i=0;
   do{
 
     //update coefficient
@@ -161,42 +177,44 @@ vector<vector<vector<double> > > gradientDescent(, double coeffect, vector<vecto
   return patterns;
 }
 
-int main()
+int main(int argc, char **argv)
 {
+  // TODO: change to cycleTime.h
   time_t now = time(0);
-   
-  // convert now to string form
   char* dt = ctime(&now);
-
   printf("The local date and time is: ");
   printf("%s", dt);
 
-  BSIM *bsim = new BSIM(PATTERN_NUM);
-  
-  // Uncomment if want to get new generated data
-  InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
-  vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
-  
-  // Uncomment if want to read data from the file
-  // vector<vector<vector<double> > > inputs(PATTERN_NUM, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-  // vector<vector<double> > psf;
-  // vector<vector<double> > psfn;
-  // for (int i=0;i<PATTERN_NUM;i++){
-  //   inputs[i]=readData("data/inputs/input_"+to_string(i)+".txt");
-  // }
-  // psf=readData("data/psf.txt");
-  // psfn=readData("data/psfn.txt");
-  // vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
+  // MPI init
+  int num_processors = 0;
+  int procID;
+  MPI_Init(&argc, &argv);
+  MPI_Comm_rank(MPI_COMM_WORLD, &procID);
+  MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
+  int pat_num = PATTERN_NUM / num_processors;
 
-  vector<vector<double> > result = bsim->Reconstruction(inputs, inputGenerator->getPSFn(), inputGenerator->getPSF());
-  saveImage(result, "imgs/outputs/result.jpg");
+  // TODO
+  // master: generate all the inputs, broadcast to all
+  // other processor: read data after receive broadcast
+  if(procID == ROOT){
+    InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
+    inputGenerator->GenerateInputs();
+    BSIM *bsim = new BSIM(PATTERN_NUM);
+  } else {
+    BSIM *bsim = new BSIM(pat_num);
+  }
+  bsim->Reconstruction();
 
+  //MPI Finish
+  MPI_Finalize();
+
+  // TODO: change to cycleTime.h
   time_t fin = time(0);
-   
-  // convert now to string form
   char* dt_fin = ctime(&fin);
   printf("The local date and time is: ");
   printf("%s", dt_fin);
+
+  
   printf("Success!\n");
   return 0;
 }
