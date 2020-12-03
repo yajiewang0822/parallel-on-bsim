@@ -1,16 +1,16 @@
 ll: BSIM 
 
 BSIM: InputGenerator.o helper.o BSIM.o
-	g++ -Wall $^ -o $@ -lopencv_core -lopencv_highgui -lfftw3
+	g++ -Wall $^ -o $@ -lopencv_core -lopencv_highgui -lfftw3 -MMD -MP
 
-BSIM.o: BSIM_sequential.cpp 
-	g++ -Wall -std=c++11 -c $< -o $@ -I /usr/include/
+BSIM.o: BSIM_parallel.cpp 
+	g++ -Wall -std=c++11 -c $< -o $@ -I /usr/include/  -MMD -MP
 
 InputGenerator.o: InputGenerator.cpp InputGenerator.h helper.cpp helper.h 
-	g++ -Wall -std=c++11 -c InputGenerator.cpp -o $@ -I /usr/include/
+	g++ -Wall -std=c++11 -c InputGenerator.cpp -o $@ -I /usr/include/  -MMD -MP
 
 helper.o: helper.cpp helper.h
-	g++ -Wall -std=c++11 -c helper.cpp -o $@ -I /usr/include/
+	g++ -Wall -std=c++11 -c helper.cpp -o $@ -I /usr/include/  -MMD -MP
 
 clean:
 	rm BSIM *.o

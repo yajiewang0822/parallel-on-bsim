@@ -3,6 +3,7 @@
     "vector": "cpp",
     "cstdint": "cpp",
     "random": "cpp",
-    "complex": "cpp"
+    "complex": "cpp",
+    "ctime": "cpp"
   }
 }
