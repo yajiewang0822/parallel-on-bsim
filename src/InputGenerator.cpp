@@ -13,11 +13,9 @@ using namespace std;
 
 InputGenerator::InputGenerator(double NA_spec, int pattern_num, int p_size)
 {
-  for (int i=0;i<IMG_SIZE;i++){
-    vector<double> v1(IMG_SIZE,0);
-    this->psf.push_back(v1);
-    vector<double> v2(IMG_SIZE,0);
-    this->psfn.push_back(v2);
+  for (int i=0;i<IMG_SIZE*IMG_SIZE;i++){
+    this->psf.push_back(0);
+    this->psfn.push_back(0);
   }
   this->NA_spec = NA_spec;
   this->pattern_num = pattern_num;
@@ -30,20 +28,20 @@ InputGenerator::InputGenerator(double NA_spec, int pattern_num, int p_size)
  * @return a 3-D matrix containing all the inputs. Each input is the result of convolution 
  * between images under specific illumination pattern and the microscopy system.
  */
-vector<vector<vector<double> > > InputGenerator::GenerateInputs()
+vector<vector<double> > InputGenerator::GenerateInputs()
 {
   
   // generate objective
-  vector<vector<double> > objective = this->GenerateObjective();
+  vector<double> objective = this->GenerateObjective();
 
   // generate psf and psfn
   GeneratePSF(NA, PSF);
-  this->psf[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
+  this->psf[(IMG_SIZE/2-1)*IMG_SIZE+(IMG_SIZE/2-1)]=1;
   GeneratePSF(NA_spec, PSFN);
-  this->psfn[IMG_SIZE/2-1][IMG_SIZE/2-1]=1;
+  this->psfn[(IMG_SIZE/2-1)*IMG_SIZE+(IMG_SIZE/2-1)]=1;
 
   // generate widefield
-  vector<vector<double> > widefield = fconv2(objective, this->psf);
+  vector<double> widefield = fconv2(objective, this->psf);
 
   // NOTE: uncomment the following if you want to view the image or view the raw data 
   // saveImage(this->psf, "imgs/psf.jpg");
@@ -55,24 +53,23 @@ vector<vector<vector<double> > > InputGenerator::GenerateInputs()
 
   //genearte patterns
   int pat_num = this->pattern_num;
-  vector<vector<vector<double> > > patterns = this->GeneratePatterns();
+  vector<vector<double> > patterns = this->GeneratePatterns();
 
-  vector<vector<double> > pat_mean(pat_num, vector<double>(pat_num, 0));
-  vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  vector<vector<double> > inputs(pat_num, vector<double>(IMG_SIZE * IMG_SIZE, 0));
   for (int i = 0; i < pat_num; i++)
   {
     for (int j = 0; j < IMG_SIZE; j++)
     {
       for (int k = 0; k < IMG_SIZE; k++)
       {
-        inputs[i][j][k] = objective[j][k] * patterns[i][j][k];
+        inputs[i][j*IMG_SIZE+k] = objective[j*IMG_SIZE+k] * patterns[i][j*IMG_SIZE+k];
       }
     }
     inputs[i] = fconv2(inputs[i], this->psf);
 
     // NOTE: uncomment the following if you want to view the image or view the raw data 
     // saveImage(inputs[i], "imgs/inputs/input_" + to_string(i)+".jpg");
-    // saveData(inputs[i], "data/inputs/input_" + to_string(i)+".txt");
+    saveData(inputs[i], "data/inputs/input_" + to_string(i)+".txt");
   }
   return inputs;
 }
@@ -100,10 +97,10 @@ void InputGenerator::GeneratePSF(double effect_NA, PSF_TYPE type)
       switch (type)
       {
       case PSF:
-        this->psf[i][j]=pow((2*boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps))),2);
+        this->psf[(i*IMG_SIZE)+j]=pow((2*boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps))),2);
         break;
       case PSFN:
-        this->psfn[i][j]=pow((2*boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps))),2);
+        this->psfn[(i*IMG_SIZE)+j]=pow((2*boost::math::cyl_bessel_j(1.0, scale*temp+eps)/((scale*temp+eps))),2);
         break;
       default:
         break;
@@ -116,10 +113,10 @@ void InputGenerator::GeneratePSF(double effect_NA, PSF_TYPE type)
  * The objective is designed to quickly get the resolution result, which
  * contains serveral-level resolution blocks.
  */
-vector<vector<double> > InputGenerator::GenerateObjective()
+vector<double> InputGenerator::GenerateObjective()
 {
   double pixel_resolution = 0.5 * LAMBDA / this->NA_spec / this->p_size;
-  vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE, 0));
+  vector<double> result(IMG_SIZE*IMG_SIZE, 0);
   int width = round(pixel_resolution + 7);
   
   int gap = 5;
@@ -137,7 +134,7 @@ vector<vector<double> > InputGenerator::GenerateObjective()
       {
         for (int j = 0; j < width_y; j++)
         {
-          result[j + y0][i + x0] = sin(2 * PI / width * i) + 1;
+          result[(j + y0)*IMG_SIZE+(i + x0)] = sin(2 * PI / width * i) + 1;
         }
       }
       
@@ -165,7 +162,7 @@ vector<vector<double> > InputGenerator::GenerateObjective()
  * 
  * @return the psf of the simulation
  */
-vector<vector<double> > InputGenerator::getPSF()
+vector<double> InputGenerator::getPSF()
 {
   return this->psf;
 }
@@ -175,7 +172,7 @@ vector<vector<double> > InputGenerator::getPSF()
  * 
  * @return the psfn of the simulation
  */
-vector<vector<double> > InputGenerator::getPSFn()
+vector<double> InputGenerator::getPSFn()
 {
   return this->psfn;
 }
@@ -185,10 +182,10 @@ vector<vector<double> > InputGenerator::getPSFn()
  * 
  * @return a 3-D matrix containing all the patterns
  */
-vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
+vector<vector<double> > InputGenerator::GeneratePatterns()
 {
   int pat_num = this->pattern_num;
-  vector<vector<vector<double> > > pattern(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  vector<vector<double> > pattern(pat_num, vector<double>(IMG_SIZE * IMG_SIZE, 0));
   vector<int> idx(IMG_SIZE * IMG_SIZE);
   for (int k = 0; k < 3; k++)
   {
@@ -209,7 +206,7 @@ vector<vector<vector<double> > > InputGenerator::GeneratePatterns()
         
         int pos_y = index / IMG_SIZE;
         int pos_x = index - pos_y * IMG_SIZE;
-        pattern[offset + i][pos_x][pos_y] = 1;
+        pattern[offset + i][pos_x*IMG_SIZE+pos_y] = 1;
         count += 1;
       }
       pattern[offset + i]=fconv2(pattern[offset + i],this->psfn);

@@ -18,9 +18,9 @@ using namespace std;
  * @param filter, input filter
  * @return matrix after convolution.
  */
-vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double> > filter)
+vector<double> fconv2(vector<double> obj, vector<double> filter)
 {
-  vector<vector<double> > result(IMG_SIZE, vector<double>(IMG_SIZE,0));
+  vector<double> result(IMG_SIZE*IMG_SIZE,0);
   fftw_complex *obj_fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * (IMG_SIZE / 2 + 1));
   fftw_complex *filter_fft= (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * IMG_SIZE * (IMG_SIZE / 2 + 1));
   
@@ -40,14 +40,14 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
   double *result_out = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
     for (int j=0;j<IMG_SIZE;j++){
-      result_in[(i*IMG_SIZE)+j] = result[i][j];
+      result_in[(i*IMG_SIZE)+j] = result[(i*IMG_SIZE)+j];
     }
   }
   // FFT shift to shift zero-frequency component to center
   fftshift_double(result_out,result_in, IMG_SIZE, IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
     for (int j=0;j<IMG_SIZE;j++){
-      result[i][j] = result_out[(i*IMG_SIZE)+j];
+      result[(i*IMG_SIZE)+j] = result_out[(i*IMG_SIZE)+j];
     }
   }
   double sum = sumImage(filter);
@@ -66,11 +66,11 @@ vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double
  * @param input, matrix to perform FFT
  * @param output, FFT result
  */
-void fft2(vector<vector<double> > input, fftw_complex *output){
+void fft2(vector<double>  input, fftw_complex *output){
   double *input_temp = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
   for (int i=0;i<IMG_SIZE;i++){
     for (int j=0;j<IMG_SIZE;j++){
-      input_temp[(i*IMG_SIZE)+j]=input[i][j];
+      input_temp[(i*IMG_SIZE)+j] = input[(i*IMG_SIZE)+j];
     }
   }
   fftw_plan p=fftw_plan_dft_r2c_2d(IMG_SIZE, IMG_SIZE, input_temp, output, FFTW_ESTIMATE);
@@ -85,15 +85,13 @@ void fft2(vector<vector<double> > input, fftw_complex *output){
  * @param input, FFTed matrix containing complex part. 
  * @return image matrix with real number as its data 
  */
-vector<vector<double > > ifft2(fftw_complex *input){
+vector<double> ifft2(fftw_complex *input){
   double *output_temp = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
-  vector<vector<double> > output(IMG_SIZE,vector<double>(IMG_SIZE,0));
   fftw_plan p=fftw_plan_dft_c2r_2d(IMG_SIZE, IMG_SIZE, input, output_temp, FFTW_ESTIMATE);
   fftw_execute(p);
-  for (int i=0;i<IMG_SIZE;i++){
-    for (int j=0;j<IMG_SIZE;j++){
-      output[i][j] = output_temp[(i*IMG_SIZE)+j]/(IMG_SIZE*IMG_SIZE);
-    }
+  vector<double> output(IMG_SIZE * IMG_SIZE,0);
+  for(int i = 0; i < IMG_SIZE * IMG_SIZE; i++){
+    output[i] = output_temp[i]/(IMG_SIZE*IMG_SIZE);
   }
   fftw_destroy_plan(p);
   free(output_temp);
@@ -101,101 +99,82 @@ vector<vector<double > > ifft2(fftw_complex *input){
 }
 
 //TODO: with Halide
-vector<vector<double> > matrixEleMul(vector<vector<double> > matrix1, vector<vector<double> > matrix2)
+
+vector<double> matrixEleMul(vector<double> matrix1, vector<double> matrix2)
 {
-  int size = matrix1.size();
-  vector<vector<double> > result(size, vector<double>(size,0));
-  for(int i = 0; i < size; i++){
-    for(int j = 0; j < size; j++){
-      result[i][j] = matrix1[i][j] * matrix2[i][j];
+  vector<double> result(IMG_SIZE*IMG_SIZE, 0);
+  for(int i = 0; i < IMG_SIZE; i++){
+    for(int j = 0; j < IMG_SIZE; j++){
+      result[i*IMG_SIZE+j] = matrix1[i*IMG_SIZE+j] * matrix2[i*IMG_SIZE+j];
     }
   }
   return result; 
 }
 
 //TODO: with Halide
-vector<vector<double> > matrixSub(vector<vector<double> > matrix1, vector<vector<double> > matrix2)
+vector<double> matrixSub(vector<double> matrix1, vector<double> matrix2)
 {
-  int size = matrix1.size();
-  vector<vector<double> > result(size, vector<double>(size,0));
+  int size = IMG_SIZE;
+  vector<double> result(size*size, 0);
   for(int i = 0; i < size; i++){
     for(int j = 0; j < size; j++){
-      result[i][j] = matrix1[i][j] - matrix2[i][j];
+      result[i*size+j] = matrix1[i*size+j] - matrix2[i*size+j];
     }
   }
   return result;
 }
 
 //TODO: with Halide
-vector<vector<double> > matrixAdd(vector<vector<double> > matrix1, vector<vector<double> > matrix2)
+vector<double> matrixAdd(vector<double> matrix1, vector<double> matrix2)
 {
-  int size = matrix1.size();
-  vector<vector<double> > result(size, vector<double>(size,0));
+  int size = IMG_SIZE;
+  vector<double> result(size*size, 0);
   for(int i = 0; i < size; i++){
     for(int j = 0; j < size; j++){
-      result[i][j] = matrix1[i][j] + matrix2[i][j];
+      result[i*size+j] = matrix1[i*size+j] + matrix2[i*size+j];
     }
   }
   return result;
 }
 
 //TODO: with Halide
-vector<vector<double> > matrixScalarMul(vector<vector<double> > matrix, double multiplier)
+vector<double> matrixScalarMul(vector<double> matrix, double multiplier)
 {
-  int size = matrix.size();
-  vector<vector<double> > result(size, vector<double>(size,0));
+  int size = IMG_SIZE;
+  vector<double> result(size*size, 0);
   for(int i = 0; i < size; i++){
     for(int j = 0; j < size; j++){
-      result[i][j] = matrix[i][j] * multiplier;
+      result[i*size+j] = matrix[i*size+j] * multiplier;
     }
   }
   return result; 
 }
 
 //TODO: with Halide
-vector<vector<double> > matrixAbs(vector<vector<double> > matrix)
+vector<double> matrixAbs(vector<double> matrix)
 {
-  int size = matrix.size();
-  vector<vector<double> > result(size, vector<double>(size,0));
+  int size = IMG_SIZE;
+  vector<double> result(size*size, 0);
   for(int i = 0; i < size; i++){
     for(int j = 0; j < size; j++){
-      result[i][j] = abs(matrix[i][j]);
+      result[i*size+j] = abs(matrix[i*size+j]);
     }
   }
   return result; 
 }
 
 //TODO: with Halide
-vector<vector<double> > matrixColMean(vector<vector<double> > matrix){
-  int size = matrix.size();
-  vector<vector<double> > result(size, vector<double>(size,0));
+vector<double> matrixColMean(vector<double> matrix){
+  int size = IMG_SIZE;
+  vector<double> result(size*size, 0);
   for(int j = 0; j < size; j++){
     for(int i = 0; i < size; i++){
-      result[0][j] += matrix[i][j];
+      result[j] += matrix[i*size+j];
     }
-    result[0][j] /= size;
+    result[j] /= size;
     for (int i=1;i<size;i++){
-      result[i][j]=result[0][j];
+      result[i*size+j]=result[j];
     }
-  }
-  return result; 
-}
-
-//TODO: with Halide
-vector<vector<double> > matrixMul(vector<vector<double> > matrix1, vector<vector<double> > matrix2){
-  int size = matrix1.size();  
-  vector<vector<double> > result(size, vector<double>(size,0));
-  
-  Eigen::MatrixXd mat1(IMG_SIZE,IMG_SIZE);
-  Eigen::MatrixXd mat2(IMG_SIZE,IMG_SIZE);
-  for (int i=0;i<IMG_SIZE;i++){
-    mat1.row(i)=Eigen::VectorXd::Map(&matrix1[i][0],IMG_SIZE);
-    mat2.row(i)=Eigen::VectorXd::Map(&matrix2[i][0],IMG_SIZE);
-  }
-  Eigen::MatrixXd mat3=mat1*mat2;
-  for (int i=0;i<IMG_SIZE;i++){
-    double* begin = &mat3.row(i).data()[0];
-    result.push_back(vector<double>(begin, begin + mat3.cols()));
   }
   return result; 
 }
@@ -207,14 +186,14 @@ vector<vector<double> > matrixMul(vector<vector<double> > matrix1, vector<vector
  * @param input 
  * @return the sum of the image
  */
-double sumImage(vector<vector<double> > input)
+double sumImage(vector<double> input)
 {
   double sum = 0;
   for (int i = 0; i < IMG_SIZE; i++)
   {
     for (int j = 0; j < IMG_SIZE; j++)
     {
-      sum += input[i][j];
+      sum += input[i*IMG_SIZE+j];
     }
   }
   return sum;
@@ -227,16 +206,16 @@ double sumImage(vector<vector<double> > input)
  * @param input, input image data
  * @param filename, filename 
  */
-void saveImage(vector<vector<double> > input, string filename){
-  double img[IMG_SIZE][IMG_SIZE];
-  for (int i = 0;i < IMG_SIZE; i++){
-    for (int j = 0;j < IMG_SIZE; j++){
-      img[i][j] = input[i][j];
-    }
-  }
+void saveImage(vector<double> input, string filename){
+  // double img[IMG_SIZE*IMG_SIZE];
+  // for (int i = 0;i < IMG_SIZE; i++){
+  //   for (int j = 0;j < IMG_SIZE; j++){
+  //     img[i*IMG_SIZE+j] = input[i*IMG_SIZE+j];
+  //   }
+  // }
   cv::Mat img_mat(IMG_SIZE,IMG_SIZE,CV_64F);
   cv::Mat img_mat_tmp(IMG_SIZE,IMG_SIZE,CV_64F);
-  memcpy(img_mat_tmp.data, img, IMG_SIZE*IMG_SIZE*sizeof(double));
+  memcpy(img_mat_tmp.data, &input[0], IMG_SIZE*IMG_SIZE*sizeof(double));
   cv::normalize(img_mat_tmp,img_mat, 255.0, 0.0, cv::NORM_MINMAX,-1, cv::noArray());
   cv::imwrite(filename,img_mat);
 }
@@ -248,12 +227,12 @@ void saveImage(vector<vector<double> > input, string filename){
  * @param input, input data
  * @param filename, filename 
  */
-void saveData(vector<vector<double> > input, string filename){
+void saveData(vector<double> input, string filename){
   ofstream myfile;
   myfile.open (filename);
   for (int i = 0;i < IMG_SIZE; i++){
     for (int j = 0;j < IMG_SIZE; j++){
-      myfile << input[i][j] << " ";
+      myfile << input[i*IMG_SIZE+j] << " ";
     }
   }
   myfile.close();
@@ -265,13 +244,13 @@ void saveData(vector<vector<double> > input, string filename){
  * @param filename, file  storing the data
  * @return image data as matrix
  */
-vector<vector<double> > readData(string filename){
-  vector<vector<double> > output(IMG_SIZE, vector<double>(IMG_SIZE,0));
+vector<double>  readData(string filename){
+  vector<double> output(IMG_SIZE*IMG_SIZE,0);
   ifstream myfile;
   myfile.open (filename);
   for (int i = 0;i < IMG_SIZE; i++){
     for (int j = 0;j < IMG_SIZE; j++){
-      myfile >> output[i][j];
+      myfile >> output[i*IMG_SIZE+j];
     }
   }
   myfile.close();
