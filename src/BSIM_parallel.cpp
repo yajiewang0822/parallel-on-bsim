@@ -27,24 +27,46 @@ BSIM::BSIM(int pat_num{
  * 
  * @return high-resolution result
  */
-vector<vector<double> > BSIM::Reconstruction(){
+vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
 
   if (procID == ROOT){
+    //initial guess on objective
+    int pat_num = this->pat_num;
+    double coefficient=0.0;
+    vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
+    for(int i = 0; i < IMG_SIZE; i++){
+      for(int j = 0; j < IMG_SIZE; j++){
+        double temp = 0;
+        for(int k = 0; k < pat_num; k++){
+          temp += inputs[k][i][j];
+        }
+        obj[i][j] = temp/pat_num;
+        coefficient = max(coefficient, obj[i][j]);
+      }
+    }
+    obj=matrixScalarMul(obj, (1.0/coefficient));
+
+    //initial guess on the illumination patterns
+    vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coefficient*0.1)));
+
+    // first calculation on cost_value
+    vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+    double cost_value = 0.0;
+    for (int j=0; j < pat_num; j++){
+      // res = input - fconv(pat*obj, psf);
+      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[j],obj),psf));      
+      // f = sum(abs(res),3);
+      cost_value += sumImage(matrixAbs(residual[j]));
+    }
+
+    // send obj, coefficient, initial cost value to all processors
     
+
     // receive cost_value
 
     // TODO: save image in the end in ROOT
     //saveImage(result, "imgs/outputs/result.jpg");
   } else {
-    vector<vector<vector<double> > > inputs(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-    vector<vector<double> > psf;
-    vector<vector<double> > psfn;
-    int startIndex = procID * pat_num;
-    for (int i = startIndex; i < startIndex + pat_num; i++){
-      inputs[i - startIndex]=readData("data/inputs/input_"+to_string(i)+".txt");
-    }
-    psf=readData("data/psf.txt");
-    psfn=readData("data/psfn.txt");
 
     // patterns estimation
   vector<vector<vector<double> > > patterns = patternEstimation(inputs, psfn, psf);
@@ -118,6 +140,15 @@ vector<vector<vector<double> > > BSIM::patternEstimation(vector<vector<vector<do
 // 2. Divide num_patterns based on num_processes, assign patterns to each, locally generate 
 // 3. Each processor runs Part B, C, D, Send the cost value in D if cost value is small enough.
 
+  // Part A claculate residual and the cost
+  vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  double cost_value = 0.0, cost_value_next = 0.0;
+  for (int j=0; j < pat_num; j++){
+      // res = input - fconv(pat*obj, psf);
+      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[j],obj),psf));      
+      // f = sum(abs(res),3);
+      cost_value += sumImage(matrixAbs(residual[j]));
+  }
   int i=0;
   do{
 
@@ -125,18 +156,6 @@ vector<vector<vector<double> > > BSIM::patternEstimation(vector<vector<vector<do
     double t_curr=0.5*(1+sqrt(1+4*(t_prev*t_prev)));
     double alpha = (t_prev-1)/t_curr;
     t_prev = t_curr;
-
-
-    // Part A claculate residual and the cost
-    vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-    double cost_value = 0.0, cost_value_next = 0.0;
-    for (int j=0; j < pat_num; j++){
-      // res = input - fconv(pat*obj, psf);
-      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[j],obj),psf));      
-      // f = sum(abs(res),3);
-      cost_value += sumImage(matrixAbs(residual[j]));
-    }
-    
 
     // Part B calculate gradient
     vector<vector<double> > gradient(IMG_SIZE,vector<double>(IMG_SIZE, 0));
@@ -194,16 +213,16 @@ int main(int argc, char **argv)
   int pat_num = PATTERN_NUM / num_processors;
 
   // TODO
-  // master: generate all the inputs, broadcast to all
-  // other processor: read data after receive broadcast
+  // master: generate all the inputs, send data to all
+  // other processor: receive data
+  InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
+  vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
   if(procID == ROOT){
-    InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
-    inputGenerator->GenerateInputs();
     BSIM *bsim = new BSIM(PATTERN_NUM);
   } else {
     BSIM *bsim = new BSIM(pat_num);
   }
-  bsim->Reconstruction();
+  bsim->Reconstruction(inputs, inputGenerator->getPSFn(), inputGenerator->getPSF());
 
   //MPI Finish
   MPI_Finalize();

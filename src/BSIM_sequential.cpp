@@ -26,33 +26,20 @@ BSIM::BSIM(int pat_num){
  * 
  * @return high-resolution result
  */
-<<<<<<< HEAD
-vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
-    //initial guess on objective
-  int pat_num = this->pat_num;
-  double coefficient=0.0;
-  vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
-=======
 vector<double> BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psfn, vector<double> psf){
   
   //initial guess on objective
   int pat_num = this->pat_num;
-  double coeffect=0.0;
+  double coefficient=0.0;
   vector<double> obj(IMG_SIZE*IMG_SIZE, 0);
->>>>>>> dfea4f3aa5de196c4c1de23c213797d5d4db63b7
   for(int i = 0; i < IMG_SIZE; i++){
     for(int j = 0; j < IMG_SIZE; j++){
       double temp = 0;
       for(int k = 0; k < pat_num; k++){
         temp += inputs[k][i*IMG_SIZE+j];
       }
-<<<<<<< HEAD
-      obj[i][j] = temp/pat_num;
-      coefficient = max(coefficient, obj[i][j]);
-=======
       obj[i*IMG_SIZE+j] = temp/pat_num;
-      coeffect = max(coeffect, obj[i*IMG_SIZE+j]);
->>>>>>> dfea4f3aa5de196c4c1de23c213797d5d4db63b7
+      coefficient = max(coefficient, obj[i*IMG_SIZE+j]);
     }
   }
   obj=matrixScalarMul(obj, (1.0/coefficient));
@@ -60,13 +47,8 @@ vector<double> BSIM::Reconstruction(vector<vector<double> > inputs, vector<doubl
   //initial guess on the illumination patterns
   double t_prev = 1.0;
   double step = 1.0;
-<<<<<<< HEAD
-  vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coefficient*0.1)));
-  vector<vector<vector<double> > > patterns_next(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-=======
-  vector<vector<double> > patterns(pat_num, vector<double>(IMG_SIZE*IMG_SIZE, coeffect*0.1));
+  vector<vector<double> > patterns(pat_num, vector<double>(IMG_SIZE*IMG_SIZE, coefficient*0.1));
   vector<vector<double> > patterns_next(pat_num, vector<double>(IMG_SIZE*IMG_SIZE, 0));
->>>>>>> dfea4f3aa5de196c4c1de23c213797d5d4db63b7
   
   
   //fast proximal gradient descent
