@@ -42,7 +42,7 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
 
     vector<double> cost_value_array(num_processors-1,0);
     vector<double> cost_value_next_array(num_processors-1,0);
-    double cost_value = 0.0, cost_value_next = 0.0;
+    double cost_value = 0.0;
 
     //initial guess on objective
     int pat_num = this->pat_num;
@@ -77,7 +77,7 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
     
     int iter=0;
     do{
-      
+      double cost_value_next = 0.0;
       // receive iteration cost_value
       for (int i=1;i<num_processors;i++){
         double receive;
@@ -86,7 +86,6 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
         cost_value_next_array[status.MPI_SOURCE-1] = receive;
         cost_value_next += receive;
       }
-
       // Part D if the cost value increases, discard the update and decrease the step
       if (cost_value_next>cost_value){
         printf("i: %d; discard update      ", iter);
@@ -96,7 +95,7 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
           MPI_Send(&DISCARD, 1, MPI_INT, i, WORK_TAG, MPI_COMM_WORLD);
         }
       } else {
-        printf("i: %d;     ", iter);
+        printf("i: %d;     cost value next = %f; \n", iter, cost_value_next);
         fflush(stdout);
         cost_value = cost_value_next;
         iter++;
@@ -114,48 +113,48 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
         
       }
     } while (iter<ITER_NUM);
-    
-
 
     //covariance of inputs&patterns
     printf("begin covariance\n"); 
-    vector<double> covar(IMG_SIZE * IMG_SIZE, 0);
-    vector<double> mean_input(IMG_SIZE*IMG_SIZE, 0.0);
-    vector<double> mean_pat(IMG_SIZE*IMG_SIZE, 0.0);
-    // MPI TODO
-    // 1. Each processor added all local patterns based on pixels and return the sum array(256*256)
-    // 2. Master added the returned sum array from each processor based on pixels
-    for (int k = 0; k < this->pat_num; k++){
-      mean_input = matrixAdd(mean_input, inputs[k]);
-    }
-    // Same with sequential: calculate the covariance of input and pattern based on pixels
-    mean_input = matrixScalarMul(mean_input, 1.0/this->pat_num);
+    {
+      vector<double> covar(IMG_SIZE * IMG_SIZE, 0);
+      vector<double> mean_input(IMG_SIZE*IMG_SIZE, 0.0);
+      vector<double> mean_pat(IMG_SIZE*IMG_SIZE, 0.0);
+      // MPI TODO
+      // 1. Each processor added all local patterns based on pixels and return the sum array(256*256)
+      // 2. Master added the returned sum array from each processor based on pixels
+      for (int k = 0; k < this->pat_num; k++){
+        mean_input = matrixAdd(mean_input, inputs[k]);
+      }
+      // Same with sequential: calculate the covariance of input and pattern based on pixels
+      mean_input = matrixScalarMul(mean_input, 1.0/this->pat_num);
 
+      
+      // receive sum_pat from each processor and add them
+      for (int k=1;k<num_processors;k++){
+        vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0);
+        MPI_Recv(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        mean_pat = matrixAdd(mean_pat, sum_pat);
+      }
+      
+      // calculate the mean_pat and send to each processor
+      mean_pat = matrixScalarMul(mean_pat,1.0/this->pat_num);
+      for (int i=1; i < num_processors; i++){
+        MPI_Send(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, WORK_TAG, MPI_COMM_WORLD);
+        MPI_Send(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, WORK_TAG, MPI_COMM_WORLD);
+      }
     
-    // receive sum_pat from each processor and add them
-    for (int k=1;k<num_processors;k++){
-      vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0);
-      MPI_Recv(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      mean_pat = matrixAdd(mean_pat, sum_pat);
-    }
-    
-    // calculate the mean_pat and send to each processor
-    mean_pat = matrixScalarMul(mean_pat,1.0/this->pat_num);
-    for (int i=1; i < num_processors; i++){
-      MPI_Send(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, WORK_TAG, MPI_COMM_WORLD);
-      MPI_Send(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, WORK_TAG, MPI_COMM_WORLD);
-    }
-   
-    // receive covar(img-size*img-size) and add them together
-    for (int k=1;k<num_processors;k++){
-      vector<double> covar_part(IMG_SIZE*IMG_SIZE, 0);
-      MPI_Recv(&covar_part[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      covar = matrixAdd(covar, covar_part);
-    }
-    covar = matrixScalarMul(mean_pat,1.0/(this->pat_num - 1));
+      // receive covar(img-size*img-size) and add them together
+      for (int k=1;k<num_processors;k++){
+        vector<double> covar_part(IMG_SIZE*IMG_SIZE, 0);
+        MPI_Recv(&covar_part[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        covar = matrixAdd(covar, covar_part);
+      }
+      covar = matrixScalarMul(mean_pat,1.0/(this->pat_num - 1));
 
-    // save image in the end in ROOT
-    saveImage(covar, "imgs/outputs/result.jpg");
+      // save image in the end in ROOT
+      saveImage(covar, "imgs/outputs/result.jpg");
+    }
   } else {
 
     int shiftIndex = (procID - 1) * pat_num;
@@ -169,31 +168,34 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
     
     //covariance of inputs&patterns
     printf("begin covariance\n"); 
-    vector<double> covar(IMG_SIZE * IMG_SIZE, 0);
-    vector<double> input(pat_num, 0);
-    vector<double> pattern(pat_num, 0);
-    vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0.0);
-    vector<double> mean_pat(IMG_SIZE*IMG_SIZE, 0.0);
-    vector<double> mean_input(IMG_SIZE*IMG_SIZE, 0.0);
+    {
+      vector<double> covar(IMG_SIZE * IMG_SIZE, 0);
+      vector<double> input(pat_num, 0);
+      vector<double> pattern(pat_num, 0);
+      vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0.0);
+      vector<double> mean_pat(IMG_SIZE*IMG_SIZE, 0.0);
+      vector<double> mean_input(IMG_SIZE*IMG_SIZE, 0.0);
 
-    // Each processor added all local patterns based on pixels and return the sum array(256*256)
-       
-    for (int k = 0; k < this->pat_num; k++){
-      sum_pat = matrixAdd(sum_pat, estimated_patterns[k]);
+      // Each processor added all local patterns based on pixels and return the sum array(256*256)
+        
+      for (int k = 0; k < this->pat_num; k++){
+        sum_pat = matrixAdd(sum_pat, estimated_patterns[k]);
+      }
+      
+      MPI_Send(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD);
+      
+      MPI_Recv(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+      for (int k = 0; k < this->pat_num; k++){
+        inputs[k + shiftIndex] = matrixSub(inputs[k + shiftIndex], mean_input);
+        estimated_patterns[k] = matrixSub(estimated_patterns[k], mean_pat);
+        covar = matrixAdd(covar, matrixEleMul(inputs[k + shiftIndex],estimated_patterns[k]));
+      }
+
+      MPI_Send(&covar[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD);
     }
-    
-    MPI_Send(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD);
-    
-    MPI_Recv(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    for (int k = 0; k < this->pat_num; k++){
-      inputs[k + shiftIndex] = matrixSub(inputs[k + shiftIndex], mean_input);
-      estimated_patterns[k] = matrixSub(estimated_patterns[k], mean_pat);
-      covar = matrixAdd(covar, matrixEleMul(inputs[k + shiftIndex],estimated_patterns[k]));
-    }
-
-    MPI_Send(&covar[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD);
+  
   }
 }
 
@@ -260,6 +262,7 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
       // f = sum(abs(res),3);
       cost_value_next += sumImage(matrixAbs(residual[j]));
     }
+
     MPI_Send(&cost_value_next, 1, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD);
     
     int update;
@@ -295,11 +298,11 @@ int main(int argc, char **argv)
   MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
   int pat_num = PATTERN_NUM / (num_processors - 1);
 
-  // TODO
-  // master: generate all the inputs, send data to all
-  // other processor: receive data
+  //Generate inputs
   InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
   vector<vector<double> > inputs = inputGenerator->GenerateInputs();
+
+  //start reconstruction
   BSIM *bsim;
   if(procID == ROOT){
     bsim = new BSIM(PATTERN_NUM);

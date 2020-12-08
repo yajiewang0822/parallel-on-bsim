@@ -44,11 +44,11 @@ vector<vector<double> > InputGenerator::GenerateInputs()
   vector<double> widefield = fconv2(objective, this->psf);
 
   // NOTE: uncomment the following if you want to view the image or view the raw data 
-  // saveImage(this->psf, "imgs/psf.jpg");
+  saveImage(this->psf, "imgs/psf.jpg");
   // saveData(this->psf, "data/psf.txt");
   // saveImage(this->psfn, "imgs/psfn.jpg");
   // saveData(this->psfn, "data/psfn.txt");
-  // saveImage(widefield, "imgs/widefield.jpg");
+  saveImage(widefield, "imgs/widefield.jpg");
   // saveData(widefield, "data/widefield.txt");
 
   //genearte patterns
