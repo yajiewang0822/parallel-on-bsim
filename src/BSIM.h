@@ -17,6 +17,6 @@ private:
 public:
   BSIM(int pat_num);
   //TODO
-  vector<vector<vector<double> > > patternEstimation(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf);
-  vector<double> Reconstruction(vector<vector<double> > inputs, vector<double> psfn, vector<double> psf);
+  vector<vector<double> > patternEstimation(vector<vector<double> > inputs,  vector<double> psf, vector<double> obj, double coefficient, int procID);
+  void Reconstruction(vector<vector<double> > inputs, vector<double> psf, int procID);
 };
