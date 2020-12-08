@@ -26,29 +26,47 @@ BSIM::BSIM(int pat_num){
  * 
  * @return high-resolution result
  */
+<<<<<<< HEAD
 vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > inputs, vector<vector<double> > psfn, vector<vector<double> > psf){
     //initial guess on objective
   int pat_num = this->pat_num;
   double coefficient=0.0;
   vector<vector<double> > obj(IMG_SIZE, vector<double>(IMG_SIZE,0));
+=======
+vector<double> BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psfn, vector<double> psf){
+  
+  //initial guess on objective
+  int pat_num = this->pat_num;
+  double coeffect=0.0;
+  vector<double> obj(IMG_SIZE*IMG_SIZE, 0);
+>>>>>>> dfea4f3aa5de196c4c1de23c213797d5d4db63b7
   for(int i = 0; i < IMG_SIZE; i++){
     for(int j = 0; j < IMG_SIZE; j++){
       double temp = 0;
       for(int k = 0; k < pat_num; k++){
-        temp += inputs[k][i][j];
+        temp += inputs[k][i*IMG_SIZE+j];
       }
+<<<<<<< HEAD
       obj[i][j] = temp/pat_num;
       coefficient = max(coefficient, obj[i][j]);
+=======
+      obj[i*IMG_SIZE+j] = temp/pat_num;
+      coeffect = max(coeffect, obj[i*IMG_SIZE+j]);
+>>>>>>> dfea4f3aa5de196c4c1de23c213797d5d4db63b7
     }
   }
   obj=matrixScalarMul(obj, (1.0/coefficient));
 
-
   //initial guess on the illumination patterns
   double t_prev = 1.0;
   double step = 1.0;
+<<<<<<< HEAD
   vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coefficient*0.1)));
   vector<vector<vector<double> > > patterns_next(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+=======
+  vector<vector<double> > patterns(pat_num, vector<double>(IMG_SIZE*IMG_SIZE, coeffect*0.1));
+  vector<vector<double> > patterns_next(pat_num, vector<double>(IMG_SIZE*IMG_SIZE, 0));
+>>>>>>> dfea4f3aa5de196c4c1de23c213797d5d4db63b7
   
   
   //fast proximal gradient descent
@@ -60,9 +78,8 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
     double alpha = (t_prev-1)/t_curr;
     t_prev = t_curr;
 
-
     // claculate residual and the cost
-    vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+    vector<vector<double> > residual(pat_num, vector<double>(IMG_SIZE*IMG_SIZE, 0));
     double cost_value = 0.0, cost_value_next = 0.0;
     for (int j=0; j < pat_num; j++){
       // res = input - fconv(pat*obj, psf);
@@ -71,10 +88,9 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       cost_value += sumImage(matrixAbs(residual[j]));
     }
 
-
     // calculate gradient
-    vector<vector<double> > gradient(IMG_SIZE,vector<double>(IMG_SIZE, 0));
-    vector<vector<double> > sum_pat(IMG_SIZE, vector<double>(IMG_SIZE, 0));
+    vector<double> gradient(IMG_SIZE*IMG_SIZE, 0);
+    vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0);
     for (int j=0; j < pat_num; j++){
       // g = -2 * obj * fconv2(res * psf);
       gradient = matrixScalarMul(matrixEleMul(obj, fconv2(residual[j],psf)),-2.0);
@@ -83,6 +99,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       // pat_next = pat + alpha * (pat_next - pat);
       patterns_next[j] = matrixAdd(patterns[j], matrixScalarMul(matrixSub(patterns_next[j], patterns[j]), alpha));
     }
+    
 
 
     // recalculate the residual and cost
@@ -111,7 +128,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
 
   //covariance of inputs&patterns
   printf("begin covariance\n");
-  vector<vector<double> > covar(IMG_SIZE, vector<double>(IMG_SIZE, 0));
+  vector<double> covar(IMG_SIZE*IMG_SIZE, 0);
   vector<double> input(pat_num, 0);
   vector<double> pattern(pat_num, 0);
   for (int i = 0; i < IMG_SIZE; i++){
@@ -119,8 +136,8 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       double mean_input = 0.0;
       double mean_pat = 0.0;
       for (int k = 0; k < this->pat_num; k++){
-        input[k] = inputs[k][i][j];
-        pattern[k] = patterns[k][i][j];
+        input[k] = inputs[k][i*IMG_SIZE+j];
+        pattern[k] = patterns[k][i*IMG_SIZE+j];
         mean_input += input[k];
         mean_pat += pattern[k];
       }
@@ -129,9 +146,9 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       for (int k = 0; k < this->pat_num; k++){
         input[k] -= mean_input;
         pattern[k] -= mean_pat;
-        covar[i][j] += input[k] * pattern[k];
+        covar[i*IMG_SIZE+j] += input[k] * pattern[k];
       }
-      covar[i][j] /= (pat_num - 1);
+      covar[i*IMG_SIZE+j] /= (pat_num - 1);
     }
   }
 
@@ -152,7 +169,7 @@ int main()
   
   // Uncomment if want to get new generated data
   InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
-  vector<vector<vector<double> > > inputs = inputGenerator->GenerateInputs();
+  vector<vector<double> > inputs = inputGenerator->GenerateInputs();
   
   // Uncomment if want to read data from the file
   // vector<vector<vector<double> > > inputs(PATTERN_NUM, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
@@ -165,7 +182,7 @@ int main()
   // psfn=readData("data/psfn.txt");
   // vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
 
-  vector<vector<double> > result = bsim->Reconstruction(inputs, inputGenerator->getPSFn(), inputGenerator->getPSF());
+  vector<double> result = bsim->Reconstruction(inputs, inputGenerator->getPSFn(), inputGenerator->getPSF());
   saveImage(result, "imgs/outputs/result.jpg");
 
   time_t fin = time(0);

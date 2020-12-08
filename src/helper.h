@@ -37,24 +37,23 @@ using namespace std;
 //ifftshift the double array based on circular shift
 #define ifftshift_double(out, in, x, y) circshift_double(out, in, x, y, ((x+1)/2), ((y+1)/2))
 
-vector<vector<double> > fconv2(vector<vector<double> > obj, vector<vector<double> > filter);
-void fft2(vector<vector<double> > input, fftw_complex *output);
-vector<vector<double > > ifft2(fftw_complex *input);
+vector<double> fconv2(vector<double>obj, vector<double> filter);
+void fft2(vector<double> input, fftw_complex *output);
+vector<double> ifft2(fftw_complex *input);
 void circshift(fftw_complex *out, fftw_complex *in, int xdim, int ydim, int xshift, int yshift);
 void circshift_double(double *out, double *in, int xdim, int ydim, int xshift, int yshift);
 
-double sumImage(vector<vector<double> > input);
-void saveImage(vector<vector<double> > input, string filename);
-void saveData(vector<vector<double> > input, string filename);
-vector<vector<double> > readData(string filename);
+double sumImage(vector<double> input);
+void saveImage(vector<double> input, string filename);
+void saveData(vector<double> input, string filename);
+vector<double> readData(string filename);
 
 /**
  * matrix operation
  */ 
-vector<vector<double> > matrixEleMul(vector<vector<double> > matrix1, vector<vector<double> > matrix2);
-vector<vector<double> > matrixMul(vector<vector<double> > matrix1, vector<vector<double> > matrix2);
-vector<vector<double> > matrixAdd(vector<vector<double> > matrix1, vector<vector<double> > matrix2);
-vector<vector<double> > matrixSub(vector<vector<double> > matrix1, vector<vector<double> > matrix2);
-vector<vector<double> > matrixAbs(vector<vector<double> > matrix);
-vector<vector<double> > matrixScalarMul(vector<vector<double> > matrix, double multiplier);
-vector<vector<double> > matrixColMean(vector<vector<double> > matrix);
+vector<double> matrixEleMul(vector<double> matrix1, vector<double> matrix2);
+vector<double> matrixAdd(vector<double> matrix1, vector<double> matrix2);
+vector<double> matrixSub(vector<double> matrix1, vector<double> matrix2);
+vector<double> matrixAbs(vector<double> matrix);
+vector<double> matrixScalarMul(vector<double> matrix, double multiplier);
+vector<double> matrixColMean(vector<double> matrix);

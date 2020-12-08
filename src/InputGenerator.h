@@ -24,19 +24,19 @@ enum PSF_TYPE{
 class InputGenerator
 {
 private:
-  vector<vector<double> > psf;
-  vector<vector<double> > psfn;
+  vector<double> psf;
+  vector<double> psfn;
   double NA_spec;
   int pattern_num; 
   int p_size;
   void GeneratePSF(double effect_NA, PSF_TYPE type);
-  vector<vector<double> > GenerateObjective();
-  vector<vector<vector<double> > > GeneratePatterns();
+  vector<double> GenerateObjective();
+  vector<vector<double> > GeneratePatterns();
 
 public:
   InputGenerator(double NA_spec, int pattern_num, int p_size);
-  vector<vector<vector<double> > > GenerateInputs();
-  vector<vector<double> > getPSF();
-  vector<vector<double> > getPSFn();
+  vector<vector<double> > GenerateInputs();
+  vector<double> getPSF();
+  vector<double> getPSFn();
 };
 
