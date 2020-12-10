@@ -126,9 +126,6 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
       for (int k = 0; k < this->pat_num; k++){
         mean_input = matrixAdd(mean_input, inputs[k]);
       }
-      // Same with sequential: calculate the covariance of input and pattern based on pixels
-      mean_input = matrixScalarMul(mean_input, 1.0/this->pat_num);
-
       
       // receive sum_pat from each processor and add them
       for (int k=1;k<num_processors;k++){
@@ -137,7 +134,8 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
         mean_pat = matrixAdd(mean_pat, sum_pat);
       }
       
-      // calculate the mean_pat and send to each processor
+      // calculate the mean_pat and mean_input and send to each processor
+      mean_input = matrixScalarMul(mean_input, 1.0/this->pat_num);
       mean_pat = matrixScalarMul(mean_pat,1.0/this->pat_num);
       for (int i=1; i < num_processors; i++){
         MPI_Send(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, WORK_TAG, MPI_COMM_WORLD);
@@ -150,7 +148,7 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
         MPI_Recv(&covar_part[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         covar = matrixAdd(covar, covar_part);
       }
-      covar = matrixScalarMul(mean_pat,1.0/(this->pat_num - 1));
+      covar = matrixScalarMul(covar,1.0/(this->pat_num - 1));
 
       // save image in the end in ROOT
       saveImage(covar, "imgs/outputs/result.jpg");
@@ -170,8 +168,6 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
     printf("begin covariance\n"); 
     {
       vector<double> covar(IMG_SIZE * IMG_SIZE, 0);
-      vector<double> input(pat_num, 0);
-      vector<double> pattern(pat_num, 0);
       vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0.0);
       vector<double> mean_pat(IMG_SIZE*IMG_SIZE, 0.0);
       vector<double> mean_input(IMG_SIZE*IMG_SIZE, 0.0);
