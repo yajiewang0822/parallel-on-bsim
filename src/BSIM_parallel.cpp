@@ -15,6 +15,7 @@
 #define ROOT 0
 #define WORK_TAG 0
 #define STOP_TAG 1
+#define COVAR_TAG 2
 
 int APPROVE = 1;
 int DISCARD = 0;
@@ -40,8 +41,9 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
     
   if (procID == ROOT){
 
-    vector<double> cost_value_array(num_processors-1,0);
-    vector<double> cost_value_next_array(num_processors-1,0);
+    vector<double> single_cost_value_array(num_processors-1,0);
+    vector<int> iter(num_processors-1,0);
+    int done_count = 0;
     double cost_value = 0.0;
 
     //initial guess on objective
@@ -71,48 +73,56 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
       double receive;
       MPI_Status status;
       MPI_Recv(&receive, 1, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, &status);
-      cost_value_array[status.MPI_SOURCE-1] = receive;
+      single_cost_value_array[status.MPI_SOURCE-1] = receive;
       cost_value += receive;
     }
     
-    int iter=0;
+    vector<double> cost_value_next_array(num_processors-1,cost_value);
+    
     do{
       double cost_value_next = 0.0;
+
       // receive iteration cost_value
-      for (int i=1;i<num_processors;i++){
-        double receive;
-        MPI_Status status;
-        MPI_Recv(&receive, 1, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, &status);
-        cost_value_next_array[status.MPI_SOURCE-1] = receive;
-        cost_value_next += receive;
+      double receive;
+      MPI_Status status;
+      MPI_Recv(&receive, 1, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, &status);
+      single_cost_value_array[status.MPI_SOURCE-1] = receive;
+
+      for (int i=1;i<num_processors;i++){    
+        cost_value_next += single_cost_value_array[i];
       }
+
+      /*
+      0     1      2      3             0     1     2     3
+      11    14     16     19           60     60    60    60
+      1     14     16     19           50     60    60    60  
+      1     19     16     19           50     55    60    60 
+
+      */
       // Part D if the cost value increases, discard the update and decrease the step
-      if (cost_value_next>cost_value){
-        printf("i: %d; discard update      ", iter);
-        fflush(stdout);
+      if (cost_value_next>cost_value_next_array[status.MPI_SOURCE-1]){
+
         //send discard the update
-        for (int i=1; i < num_processors; i++){
-          MPI_Send(&DISCARD, 1, MPI_INT, i, WORK_TAG, MPI_COMM_WORLD);
-        }
+        printf("proc: %d; Iter: %d; discard update      \n", status.MPI_SOURCE, iter[status.MPI_SOURCE-1]);
+        fflush(stdout);     
+        MPI_Send(&DISCARD, 1, MPI_INT, status.MPI_SOURCE, WORK_TAG, MPI_COMM_WORLD);
+
       } else {
-        printf("i: %d;     cost value next = %f; \n", iter, cost_value_next);
+
+        //send approve the update and ask workers to keep working
+        printf("proc: %d; Iter: %d;     cost value next = %f; \n", status.MPI_SOURCE, iter[status.MPI_SOURCE-1], cost_value_next);
         fflush(stdout);
-        cost_value = cost_value_next;
-        iter++;
-        if (iter==ITER_NUM){
-          //send approve the update and ask workers to stop working
-          for (int i=1; i < num_processors; i++){
-              MPI_Send(&APPROVE, 1, MPI_INT, i, STOP_TAG, MPI_COMM_WORLD);
-          }
+        iter[status.MPI_SOURCE-1]++;
+        cost_value_next_array[status.MPI_SOURCE-1] = cost_value_next;
+        if (iter[status.MPI_SOURCE-1] == ITER_NUM){
+          done_count++;
+          MPI_Send(&APPROVE, 1, MPI_INT, status.MPI_SOURCE, STOP_TAG, MPI_COMM_WORLD);
         } else {
-          //send approve the update and ask workers to keep working
-          for (int i=1; i < num_processors; i++){
-              MPI_Send(&APPROVE, 1, MPI_INT, i, WORK_TAG, MPI_COMM_WORLD);
-          }
-        }
+          MPI_Send(&APPROVE, 1, MPI_INT, status.MPI_SOURCE, WORK_TAG, MPI_COMM_WORLD);
+        } 
         
       }
-    } while (iter<ITER_NUM);
+    } while (done_count < (num_processors-1));
 
     //covariance of inputs&patterns
     printf("begin covariance\n"); 
@@ -130,7 +140,7 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
       // receive sum_pat from each processor and add them
       for (int k=1;k<num_processors;k++){
         vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0);
-        MPI_Recv(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, COVAR_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         mean_pat = matrixAdd(mean_pat, sum_pat);
       }
       
@@ -138,14 +148,14 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
       mean_input = matrixScalarMul(mean_input, 1.0/this->pat_num);
       mean_pat = matrixScalarMul(mean_pat,1.0/this->pat_num);
       for (int i=1; i < num_processors; i++){
-        MPI_Send(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, WORK_TAG, MPI_COMM_WORLD);
-        MPI_Send(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, WORK_TAG, MPI_COMM_WORLD);
+        MPI_Send(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, COVAR_TAG, MPI_COMM_WORLD);
+        MPI_Send(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, i, COVAR_TAG, MPI_COMM_WORLD);
       }
     
       // receive covar(img-size*img-size) and add them together
       for (int k=1;k<num_processors;k++){
         vector<double> covar_part(IMG_SIZE*IMG_SIZE, 0);
-        MPI_Recv(&covar_part[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&covar_part[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, MPI_ANY_SOURCE, COVAR_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         covar = matrixAdd(covar, covar_part);
       }
       covar = matrixScalarMul(covar,1.0/(this->pat_num - 1));
@@ -178,10 +188,10 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
         sum_pat = matrixAdd(sum_pat, estimated_patterns[k]);
       }
       
-      MPI_Send(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD);
+      MPI_Send(&sum_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, COVAR_TAG, MPI_COMM_WORLD);
       
-      MPI_Recv(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, COVAR_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, COVAR_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
       for (int k = 0; k < this->pat_num; k++){
         inputs[k + shiftIndex] = matrixSub(inputs[k + shiftIndex], mean_input);
@@ -189,7 +199,7 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
         covar = matrixAdd(covar, matrixEleMul(inputs[k + shiftIndex],estimated_patterns[k]));
       }
 
-      MPI_Send(&covar[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD);
+      MPI_Send(&covar[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, COVAR_TAG, MPI_COMM_WORLD);
     }
   
   }
@@ -227,7 +237,6 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
   //initial parameter for iteration
   double t_prev = 1.0;
   double step = 1.0;
-  int i=0;
   MPI_Status status;
   do{
 
@@ -271,7 +280,6 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
       step = step / 2;
     } else {
       patterns = patterns_next;
-      i++;
     }   
   } while (status.MPI_TAG != STOP_TAG);
 
