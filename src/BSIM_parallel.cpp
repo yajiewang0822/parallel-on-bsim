@@ -49,17 +49,30 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
     //initial guess on objective
     int pat_num = this->pat_num;
     coefficient=0.0;
-    
+
+
+    // for(int i = 0; i < IMG_SIZE; i++){
+    //   for(int j = 0; j < IMG_SIZE; j++){
+    //     double temp = 0;
+    //     for(int k = 0; k < pat_num; k++){
+    //       temp += inputs[k][i*IMG_SIZE+j];
+    //     }
+    //     obj[i*IMG_SIZE+j] = temp/pat_num;
+    //     coefficient = max(coefficient, obj[i*IMG_SIZE+j]);
+    //   }
+    // }
+#pragma omp parallel for   
+    for(int k = 0; k < pat_num; k++){
+      obj=matrixAdd(obj, inputs[k]);
+    }
+    obj=matrixScalarMul(obj, 1.0/pat_num);
+
     for(int i = 0; i < IMG_SIZE; i++){
       for(int j = 0; j < IMG_SIZE; j++){
-        double temp = 0;
-        for(int k = 0; k < pat_num; k++){
-          temp += inputs[k][i*IMG_SIZE+j];
-        }
-        obj[i*IMG_SIZE+j] = temp/pat_num;
         coefficient = max(coefficient, obj[i*IMG_SIZE+j]);
       }
     }
+
     obj=matrixScalarMul(obj, (1.0/coefficient));
     coefficient*=0.1;
     //send initial obj guess and coefficient
@@ -92,13 +105,6 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
         cost_value_next += single_cost_value_array[i];
       }
 
-      /*
-      0     1      2      3             0     1     2     3
-      11    14     16     19           60     60    60    60
-      1     14     16     19           50     60    60    60  
-      1     19     16     19           50     55    60    60 
-
-      */
       // Part D if the cost value increases, discard the update and decrease the step
       if (cost_value_next>cost_value_next_array[status.MPI_SOURCE-1]){
 
@@ -130,9 +136,9 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
       vector<double> covar(IMG_SIZE * IMG_SIZE, 0);
       vector<double> mean_input(IMG_SIZE*IMG_SIZE, 0.0);
       vector<double> mean_pat(IMG_SIZE*IMG_SIZE, 0.0);
-      // MPI TODO
-      // 1. Each processor added all local patterns based on pixels and return the sum array(256*256)
-      // 2. Master added the returned sum array from each processor based on pixels
+
+      // TODO: need synchronization
+#pragma omp parallel for
       for (int k = 0; k < this->pat_num; k++){
         mean_input = matrixAdd(mean_input, inputs[k]);
       }
@@ -183,7 +189,8 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
       vector<double> mean_input(IMG_SIZE*IMG_SIZE, 0.0);
 
       // Each processor added all local patterns based on pixels and return the sum array(256*256)
-        
+      // TODO: need synchronization
+#pragma omp parallel for
       for (int k = 0; k < this->pat_num; k++){
         sum_pat = matrixAdd(sum_pat, estimated_patterns[k]);
       }
@@ -192,10 +199,12 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
       
       MPI_Recv(&mean_pat[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, COVAR_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       MPI_Recv(&mean_input[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, COVAR_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+      // TODO: need synchronization
+#pragma omp parallel for
       for (int k = 0; k < this->pat_num; k++){
         inputs[k + shiftIndex] = matrixSub(inputs[k + shiftIndex], mean_input);
         estimated_patterns[k] = matrixSub(estimated_patterns[k], mean_pat);
+        
         covar = matrixAdd(covar, matrixEleMul(inputs[k + shiftIndex],estimated_patterns[k]));
       }
 
@@ -215,7 +224,8 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
   vector<vector<double> > residual(pat_num, vector<double>(IMG_SIZE * IMG_SIZE, 0));
   double cost_value = 0.0;
   int shiftIndex = (PATTERN_NUM / (num_processors-1)) * (procID - 1);
-
+  // TODO: need synchronization
+#pragma omp parallel for
   for (int j=0; j < pat_num; j++){
     // res = input - fconv(pat*obj, psf);
     residual[j] = matrixSub(inputs[j + shiftIndex],fconv2(matrixEleMul(patterns[j],obj),psf));      
@@ -251,6 +261,7 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
     vector<double> gradient(IMG_SIZE*IMG_SIZE, 0);
     vector<double> sum_pat(IMG_SIZE*IMG_SIZE, 0);
     
+#pragma omp parallel for
     for (int j=0; j < pat_num; j++){
       // g = -2 * obj * fconv2(res * psf);
       gradient = matrixScalarMul(matrixEleMul(obj, fconv2(residual[j],psf)),-2.0);
@@ -260,7 +271,7 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
       patterns_next[j] = matrixAdd(patterns[j], matrixScalarMul(matrixSub(patterns_next[j], patterns[j]), alpha));
     }
 
-
+#pragma omp parallel for
     // Part C recalculate the residual and cost
     for (int j=0; j < pat_num; j++){
       // res = input - fconv(pat * obj, psf);
