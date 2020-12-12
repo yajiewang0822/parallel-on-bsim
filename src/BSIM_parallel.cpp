@@ -50,16 +50,17 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
     int pat_num = this->pat_num;
     coefficient=0.0;
     
+    for(int k = 0; k < pat_num; k++){
+      obj=matrixAdd(obj, inputs[k]);
+    }
+    obj=matrixScalarMul(obj, 1.0/pat_num);
+
     for(int i = 0; i < IMG_SIZE; i++){
       for(int j = 0; j < IMG_SIZE; j++){
-        double temp = 0;
-        for(int k = 0; k < pat_num; k++){
-          temp += inputs[k][i*IMG_SIZE+j];
-        }
-        obj[i*IMG_SIZE+j] = temp/pat_num;
         coefficient = max(coefficient, obj[i*IMG_SIZE+j]);
       }
     }
+
     obj=matrixScalarMul(obj, (1.0/coefficient));
     coefficient*=0.1;
     //send initial obj guess and coefficient
