@@ -19,6 +19,7 @@
 int APPROVE = 1;
 int DISCARD = 0;
 int num_processors;
+int res;
 
 BSIM::BSIM(int pat_num){
   this->pat_num = pat_num;
@@ -95,8 +96,8 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
           MPI_Send(&DISCARD, 1, MPI_INT, i, WORK_TAG, MPI_COMM_WORLD);
         }
       } else {
-        printf("i: %d;     cost value next = %f; \n", iter, cost_value_next);
-        fflush(stdout);
+        // printf("i: %d;     cost value next = %f; \n", iter, cost_value_next);
+        // fflush(stdout);
         cost_value = cost_value_next;
         iter++;
         if (iter==ITER_NUM){
@@ -155,7 +156,8 @@ void BSIM::Reconstruction(vector<vector<double> > inputs, vector<double> psf, in
     }
   } else {
 
-    int shiftIndex = (PATTERN_NUM / (num_processors-1)) * (procID - 1);
+    int smallshift = procID <= res ? procID-1 : res;
+    int shiftIndex = (PATTERN_NUM / (num_processors-1)) * (procID - 1) + smallshift;
 
     // Receive guess of objective and initial coefficient from ROOT
     MPI_Recv(&obj[0], IMG_SIZE*IMG_SIZE, MPI_DOUBLE, ROOT, WORK_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -204,7 +206,9 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
   // calculate initial cost_value and send
   vector<vector<double> > residual(pat_num, vector<double>(IMG_SIZE * IMG_SIZE, 0));
   double cost_value = 0.0;
-  int shiftIndex = (PATTERN_NUM / (num_processors-1)) * (procID - 1);
+
+  int smallshift = procID <= res ? procID-1 : res;
+  int shiftIndex = (PATTERN_NUM / (num_processors-1)) * (procID - 1) + smallshift;
 
   for (int j=0; j < pat_num; j++){
     // res = input - fconv(pat*obj, psf);
@@ -281,11 +285,8 @@ vector<vector<double> > BSIM::patternEstimation(vector<vector<double> > inputs, 
 
 int main(int argc, char **argv)
 {
-  // TODO: change to cycleTime.h
-  time_t now = time(0);
-  char* dt = ctime(&now);
-  printf("The local date and time is: ");
-  printf("%s", dt);
+  //time recording
+  double startTime, endTime;
 
   // MPI init
   
@@ -294,30 +295,30 @@ int main(int argc, char **argv)
   MPI_Comm_rank(MPI_COMM_WORLD, &procID);
   MPI_Comm_size(MPI_COMM_WORLD, &num_processors);
   int pat_num = PATTERN_NUM / (num_processors - 1);
+  res = PATTERN_NUM % (num_processors -1);
   //Generate inputs
   InputGenerator *inputGenerator = new InputGenerator(NA_SPEC, PATTERN_NUM, PIXEL_SIZE);
   vector<vector<double> > inputs = inputGenerator->GenerateInputs();
 
+  startTime = MPI_Wtime();
   //start reconstruction
   BSIM *bsim;
   if(procID == ROOT){
     bsim = new BSIM(PATTERN_NUM);
   } else {
-    if (procID == num_processors -1){
-      pat_num += PATTERN_NUM % (num_processors - 1);
+    if (procID <= res){
+      pat_num += 1;
     }
     bsim = new BSIM(pat_num);
   }
   bsim->Reconstruction(inputs, inputGenerator->getPSF(),procID);
 
+  endTime = MPI_Wtime();
+  printf("Success!\n");
+  printf("spend time:  %.3f s\n", (endTime - startTime));
+
   //MPI Finish
   MPI_Finalize();
-
-  // TODO: change to cycleTime.h
-  time_t fin = time(0);
-  char* dt_fin = ctime(&fin);
-  printf("The local date and time is: ");
-  printf("%s", dt_fin);
 
   
   printf("Success!\n");
