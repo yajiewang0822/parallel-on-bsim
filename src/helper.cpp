@@ -7,6 +7,7 @@
  * @author: Yajie Wang
  */
 #include "helper.h"
+#include <omp.h>
 
 
 using namespace std;
@@ -73,9 +74,15 @@ void fft2(vector<double>  input, fftw_complex *output){
       input_temp[(i*IMG_SIZE)+j] = input[(i*IMG_SIZE)+j];
     }
   }
-  fftw_plan p=fftw_plan_dft_r2c_2d(IMG_SIZE, IMG_SIZE, input_temp, output, FFTW_ESTIMATE);
+  fftw_plan p;
+  #pragma omp critical
+    p = fftw_plan_dft_r2c_2d(IMG_SIZE, IMG_SIZE, input_temp, output, FFTW_ESTIMATE);
+  
   fftw_execute(p);
-  fftw_destroy_plan(p);
+  
+  #pragma omp critical
+    fftw_destroy_plan(p);
+
   free(input_temp);
 }
 
@@ -87,13 +94,19 @@ void fft2(vector<double>  input, fftw_complex *output){
  */
 vector<double> ifft2(fftw_complex *input){
   double *output_temp = (double*) malloc(sizeof(double) * IMG_SIZE * IMG_SIZE);
-  fftw_plan p=fftw_plan_dft_c2r_2d(IMG_SIZE, IMG_SIZE, input, output_temp, FFTW_ESTIMATE);
+  fftw_plan p;
+  #pragma omp critical
+    p=fftw_plan_dft_c2r_2d(IMG_SIZE, IMG_SIZE, input, output_temp, FFTW_ESTIMATE);
+  
   fftw_execute(p);
   vector<double> output(IMG_SIZE * IMG_SIZE,0);
   for(int i = 0; i < IMG_SIZE * IMG_SIZE; i++){
     output[i] = output_temp[i]/(IMG_SIZE*IMG_SIZE);
   }
-  fftw_destroy_plan(p);
+
+  #pragma omp critical
+    fftw_destroy_plan(p);
+
   free(output_temp);
   return output;
 }

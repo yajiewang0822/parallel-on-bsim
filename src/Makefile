@@ -10,7 +10,7 @@ InputGenerator.o: InputGenerator.cpp InputGenerator.h helper.cpp helper.h
 	mpicxx -Wall -std=c++11 -c InputGenerator.cpp -o $@ -I /usr/include/ -MMD -MP
 
 helper.o: helper.cpp helper.h
-	mpicxx -Wall -std=c++11 -c helper.cpp -o $@ -I /usr/include/ -MMD -MP
+	mpicxx -Wall -std=c++11 -c helper.cpp -o $@ -I /usr/include/ -MMD -MP -fopenmp 
 
 clean:
-	rm BSIM *.o
+	rm BSIM *.o ./imgs/outputs/result.jpg
