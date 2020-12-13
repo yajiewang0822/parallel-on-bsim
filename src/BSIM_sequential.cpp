@@ -51,26 +51,26 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
   vector<vector<vector<double> > > patterns(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, coeffect*0.1)));
   vector<vector<vector<double> > > patterns_next(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
   
+  // claculate residual and the cost
+  vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
+  double cost_value = 0.0;
+  for (int j=0; j < pat_num; j++){
+    // res = input - fconv(pat*obj, psf);
+    residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[j],obj),psf));      
+    // f = sum(abs(res),3);
+    cost_value += sumImage(matrixAbs(residual[j]));
+  }
   
   //fast proximal gradient descent
   int i=0;
   do{
 
+    double cost_value_next = 0.0;
+
     //update co-effective
     double t_curr=0.5*(1+sqrt(1+4*(t_prev*t_prev)));
     double alpha = (t_prev-1)/t_curr;
     t_prev = t_curr;
-
-
-    // claculate residual and the cost
-    vector<vector<vector<double> > > residual(pat_num, vector<vector<double> >(IMG_SIZE, vector<double>(IMG_SIZE, 0)));
-    double cost_value = 0.0, cost_value_next = 0.0;
-    for (int j=0; j < pat_num; j++){
-      // res = input - fconv(pat*obj, psf);
-      residual[j] = matrixSub(inputs[j],fconv2(matrixEleMul(patterns[j],obj),psf));      
-      // f = sum(abs(res),3);
-      cost_value += sumImage(matrixAbs(residual[j]));
-    }
 
 
     // calculate gradient
@@ -105,6 +105,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
       printf("i: %d;     ", i);
       fflush(stdout);
       patterns = patterns_next;
+      cost_value = cost_value_next;
       i++;
     }
   } while (i < ITER_NUM);
@@ -141,13 +142,7 @@ vector<vector<double> > BSIM::Reconstruction(vector<vector<vector<double> > > in
 
 int main()
 {
-  time_t now = time(0);
-   
-  // convert now to string form
-  char* dt = ctime(&now);
-
-  printf("The local date and time is: ");
-  printf("%s", dt);
+  
 
   BSIM *bsim = new BSIM(PATTERN_NUM);
   
@@ -165,6 +160,13 @@ int main()
   // psf=readData("data/psf.txt");
   // psfn=readData("data/psfn.txt");
   // vector<vector<double> > result = bsim->Reconstruction(inputs, psfn, psf);
+  time_t now = time(0);
+   
+  // convert now to string form
+  char* dt = ctime(&now);
+
+  printf("The local date and time is: ");
+  printf("%s", dt);
 
   vector<vector<double> > result = bsim->Reconstruction(inputs, inputGenerator->getPSFn(), inputGenerator->getPSF());
   saveImage(result, "imgs/outputs/result.jpg");
