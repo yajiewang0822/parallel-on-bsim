@@ -5,6 +5,7 @@
 
 ## URL
 [https://yajiewang0822.github.io/parallel-on-bsim/](https://yajiewang0822.github.io/parallel-on-bsim/)
+[link to the final report](https://github.com/yajiewang0822/parallel-on-bsim/blob/main/report.pdf)
 ## Summary
 We would like to speed up the Reconstruction simulation by parallelizing the Blind Structured Illumination Microscopy(BSIM) algorithm which involves proximal griadient descent.
 ## Background
