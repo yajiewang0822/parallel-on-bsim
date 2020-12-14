@@ -1,5 +1,5 @@
 
-# Parallel BSIM Reconstruction Simulation
+# Parallelism in BSIM
 
 ---
 
@@ -49,7 +49,7 @@ We are still deciding whether we use OpenMP or MPI to parallelize our code. We w
 - <s>Week4(11.26 - 12.2):  Continue work and debug the parallel BSIM </s>
 - <s>Week5(12.3  - 12.9):  Collect result, write reports, and prepare the poster sessoon. </s>
 
-# Parallel on BSIM Checkpoint
+# Parallelism in BSIM Checkpoint
 
 ### Timeline
 - 11.7-11.9 Write sequential code for the first part of BSIM: Simulate microscope imaging process to get all the input images(Yajie) and related helper functions (Peicheng) 
