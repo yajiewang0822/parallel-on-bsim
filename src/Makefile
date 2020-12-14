@@ -3,7 +3,7 @@ all: BSIM
 BSIM: InputGenerator.o helper.o BSIM.o
 	mpicxx -Wall $^ -o $@ -lopencv_core -lopencv_highgui -lfftw3 -MMD -MP
 
-BSIM.o: BSIM_sequential.cpp 
+BSIM.o: BSIM_parallel.cpp 
 	mpicxx -Wall -std=c++11 -c $< -o $@ -I /usr/include/ -MMD -MP
 
 InputGenerator.o: InputGenerator.cpp InputGenerator.h helper.cpp helper.h

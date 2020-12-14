@@ -32,7 +32,8 @@ vector<vector<double> > InputGenerator::GenerateInputs()
 {
   
   // generate objective
-  vector<double> objective = this->GenerateObjective();
+  // vector<double> objective = this->GenerateObjective();
+  vector<double> objective=readData("./testpat.txt");
 
   // generate psf and psfn
   GeneratePSF(NA, PSF);
@@ -187,16 +188,16 @@ vector<vector<double> > InputGenerator::GeneratePatterns()
   int pat_num = this->pattern_num;
   vector<vector<double> > pattern(pat_num, vector<double>(IMG_SIZE * IMG_SIZE, 0));
   vector<int> idx(IMG_SIZE * IMG_SIZE);
-  for (int k = 0; k < 3; k++)
+  for (int k = 0; k < REPEAT; k++)
   {
     for (int i = 0; i < IMG_SIZE * IMG_SIZE; i++)
     {
       idx[i] = i;
     }
-    int offset = k * pat_num / 3;
+    int offset = k * pat_num / REPEAT;
     random_shuffle(idx.begin(), idx.end());
     
-    for (int i = 0; i < pat_num / 3; i++)
+    for (int i = 0; i < pat_num / REPEAT; i++)
     {
       int count = 0;
       while (count < NUM_SPECKLE)

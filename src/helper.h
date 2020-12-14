@@ -21,8 +21,8 @@
 
 using namespace std;
 #define NA_SPEC 0.9
-#define PATTERN_NUM 384
-#define IMG_SIZE 256
+#define PATTERN_NUM 2048
+#define IMG_SIZE 512
 #define PIXEL_SIZE 30
 
 /**
